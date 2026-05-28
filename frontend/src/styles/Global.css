@@ -4,11 +4,11 @@
 :root {
     /* Table */
     --child-row: #d4d4d4;
-    --row-hover: #99b1bb;
+    --row-hover: #9f99bb;
     --row-color: #ebebeb;
     --row-hover: #c4cfd4;
     --table-header-footer: #ffffff;
-    --table-header-footer2: #7198aa;
+    --table-header-footer2: #8771aa;
     --table-text: #000;
 
     /* Backgrounds */
@@ -26,14 +26,14 @@
     --data-section: #ffffff;
 
     /* Modals */
-    --modal-title-color: #3b6a96;
+    --modal-title-color: #563b96;
 
     /* Buttons */
-    --buttons: #81afca;
-    --buttons-hover: #6491aa;
+    --buttons: #9b81ca;
+    --buttons-hover: #7764aa;
     --button-text-color: black;
     --button-text-color2: white;
-    --button-view-more: #29577c;
+    --button-view-more: #49297c;
     --button-registrar: #2e2e2e;
     --button-lista: #c2a9cc;
     --button-lista-hover: rgb(152, 125, 163);
@@ -42,13 +42,13 @@
     --button-success-hover: #6b9c69;
 
     /* Text */
-    --primary-color: #3a678b;
+    --primary-color: #643a8b;
     --selected-color: #e9e9e9;
     --text-color: #333;
-    --option-selected-text-color: #004872;
+    --option-selected-text-color: #280072;
     --text-headers: #2f313e;
-    --legend: #004872;
-    --time: #004872;
+    --legend: #310072;
+    --time: #280072;
     --header-text: #575757;
 
     /* Header */
@@ -59,10 +59,10 @@
     /* Table */
     --child-row: #333842;
     --row-hover: #444b56;
-    --row-color: #6fa1db67;
+    --row-color: #6f71db67;
     --row-hover: #504226;
     --table-header-footer: #2e2e2e57;
-    --table-header-footer2: #29547c;
+    --table-header-footer2: #38297c;
     --table-text: #fff;
 
     /* Backgrounds */
@@ -80,25 +80,25 @@
     --data-section: #2e2e2e57;
 
     /* Modals */
-    --modal-title-color: #29577c;
+    --modal-title-color: #3b297c;
 
     /* Buttons */
-    --buttons: #81afca;
-    --buttons-hover: #81afca;
+    --buttons: #8c81ca;
+    --buttons-hover: #8e81ca;
     --button-text-color: #ffff;
     --button-text-color2: black;
-    --button-view-more: #344f69;
+    --button-view-more: #473469;
     --button-registrar: #000000;
     --button-lista: #9162a3;
 
     /* Text */
-    --primary-color: #3a678b;
+    --primary-color: #463a8b;
     --selected-color: #363636;
     --text-color: #333;
-    --option-selected-text-color: #7bb5d6;
+    --option-selected-text-color: #967bd6;
     --text-headers: #ffffff;
-    --legend: #004872;
-    --time: #004872;
+    --legend: #350072;
+    --time: #310072;
     --header-text: #ffffff;
     
     /* Header */

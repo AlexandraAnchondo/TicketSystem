@@ -15,7 +15,7 @@ import {
   Person,
   Lock
 } from "@mui/icons-material";
-import logo from "../assets/logo_congreso.png";
+import logo from "../assets/logo.png";
 import { login } from "../data/API";
 
 const Login = () => {
@@ -38,7 +38,7 @@ const Login = () => {
 
       window.location.href = "/tickets/inicio";
     } catch (err) {
-      setError(err.message);
+      setError(err.error || "Error al iniciar sesión. Inténtalo de nuevo.");
     }
   };
 
@@ -71,7 +71,7 @@ const Login = () => {
         />
 
         <Typography variant="h5" fontWeight="bold">
-          Sistema de Registro de Visitas
+          Sistema de registro de tickets
         </Typography>
 
         <Typography variant="h6" color="text.secondary" mb={3} mt={1}>
@@ -157,12 +157,12 @@ const Login = () => {
             ¿No tienes una cuenta?
           </Typography>
           <Typography variant="subtitle1" color="text.secondary" mb={3}>
-            Contacta al departamento de informática
+            Contacta a Alexandra Anchondo.
           </Typography>
         </form>
       </Paper>
       <Typography variant="subtitle2" color="text.secondary" mt={8}>
-        © {new Date().getFullYear()} Poder Legislativo del Estado de Baja California.
+        © {new Date().getFullYear()} Ticket Template By Alexandra Anchondo.
       </Typography>
     </Box>
 

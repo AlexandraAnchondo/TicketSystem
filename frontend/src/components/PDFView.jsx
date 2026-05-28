@@ -7,7 +7,7 @@ import {
     StyleSheet,
     Image,
 } from '@react-pdf/renderer';
-import logoCongreso from '../assets/logo_congreso.png';
+import logoCongreso from '../assets/logo.png';
 
 const styles = StyleSheet.create({
     page: {
@@ -201,7 +201,7 @@ const MyDocument = ({ data }) => {
                         <Text>{data.nombre_recibe}</Text>
                     </View>
                     <View style={styles.firmaBox}>
-                        
+
                         <Text>ENTREGÓ PERSONAL DE INFORMÁTICA</Text>
                         <View style={{ height: 50 }} />
                         <Text>{data.nombre_entrega}</Text>
@@ -213,7 +213,7 @@ const MyDocument = ({ data }) => {
                     </View>
                 </View>
 
-                
+
             </Page>
         </Document>
     );

@@ -71,7 +71,7 @@ export default function Layout() {
             }}
           >
             <Typography variant="body2">
-              © {new Date().getFullYear()} Congreso del Estado de Baja California.
+              © {new Date().getFullYear()} Ticket template by Alexandra Anchondo.
             </Typography>
           </Box>
         </Box>

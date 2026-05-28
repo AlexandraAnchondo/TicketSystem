@@ -6,7 +6,7 @@ import logo from './assets/Avatar.png';
 import "./styles/App.css";
 
 const BRANDING = {
-  title: "Template Toolpad",
+  title: "Ticket System",
   logo: (
     <img
       src={logo}
