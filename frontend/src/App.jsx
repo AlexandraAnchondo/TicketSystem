@@ -1,16 +1,52 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import DashboardPage from './pages/DashboardPage'
-import './App.css'
+import * as React from 'react';
+import { Outlet } from 'react-router';
+import { ReactRouterAppProvider } from '@toolpad/core/react-router';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import logo from './assets/Avatar.png';
+import "./styles/App.css";
 
-function App() {
+const BRANDING = {
+  title: "Ticket System",
+  logo: (
+    <img
+      src={logo}
+      alt="Logo"
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: "50%",
+        objectFit: "cover",
+      }}
+    />
+  ),
+};
+
+export default function App() {
+  const navigation = [
+    {
+      kind: 'header',
+      title: 'NAVEGACIÓN',
+    },
+    {
+      segment: 'inicio',
+      title: 'Inicio',
+      icon: <DashboardIcon />,
+      pattern: 'inicio',
+    },
+    {
+      segment: 'dashboard',
+      title: 'Dashboard',
+      icon: <DashboardIcon />,
+      pattern: 'dashboard',
+    },
+  ];
+
   return (
-    <Router basename="/tickets/">
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-      </Routes>
-    </Router>
-  )
+    <ReactRouterAppProvider
+      navigation={navigation}
+      branding={BRANDING}
+    >
+      <Outlet />
+    </ReactRouterAppProvider>
+  );
 }
-
-export default App
