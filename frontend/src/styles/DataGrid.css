@@ -1,0 +1,132 @@
+@import './Global.css';
+
+.MuiDataGrid-row:nth-of-type(odd) {
+    background-color: var(--child-row);
+}
+
+.MuiDataGrid-row:nth-of-type(even) {
+    background-color: white;
+}
+
+[data-toolpad-color-scheme="dark"] .MuiDataGrid-row:nth-of-type(even) {
+    background-color: #262c35;
+}
+
+.MuiDataGrid-row:hover {
+    background-color: var(--row-hover) !important;
+}
+
+.MuiDataGrid-root .MuiDataGrid-cell {
+    text-align: center !important;
+    font-family: "DM Sans", sans-serif !important;
+}
+
+/* Estilos generales para los encabezados */
+.MuiDataGrid-columnHeader {
+    background-color: var(--table-header-footer2) !important;
+    /* Fondo del encabezado */
+    color: rgb(0, 0, 0);
+    /* Color del texto */
+    font-size: 1rem;
+    /* Tamaño de fuente */
+    text-align: center !important;
+    /* Centrar el texto */
+    font-family: "DM Sans", sans-serif !important;
+    font-weight: 600 !important;
+}
+
+/* Alternar colores en las filas */
+.MuiDataGrid-row:nth-of-type(odd) {
+    background-color: var(--child-row);
+    /* Color para filas impares */
+}
+
+/* Cambiar el color al pasar el mouse */
+.MuiDataGrid-row:hover {
+    background-color: var(--row-hover) !important;
+    /* Color al hacer hover */
+}
+
+.MuiDataGrid-row:nth-of-type(even) {
+    background-color: white;
+    /* Color para filas pares */
+}
+
+.MuiDataGrid-columnHeaderTitleContainer {
+    justify-content: center !important;
+    /* Centrar el título del encabezado */
+}
+
+.MuiDataGrid-columnHeader:last-of-type {
+    border-right: none !important;
+    /* Sin línea divisoria en la última celda */
+}
+
+.data-grid-container {
+    width: 100%;
+    /* Ancho completo */
+    justify-content: center;
+    /* Centrar verticalmente */
+    box-sizing: border-box;
+    /* Incluir padding y border en el ancho y alto */
+    background-color: transparent !important;
+    /* Fondo transparente */
+    box-shadow: none !important;
+    /* Sin sombra */
+    border: none !important;
+    /* Sin borde */
+    overflow-x: auto;
+}
+
+.data-table-container {
+    display: flex;
+    justify-content: center;
+    height: auto;
+    /* Altura completa de la ventana */
+    width: 100%;
+    padding: 20px;
+    /* Espaciado para bordes */
+    box-sizing: border-box;
+}
+
+/* Estilo adicional para limitar el tamaño de la tabla */
+.data-table {
+    width: 100%;
+    height: auto;
+    overflow: auto;
+    padding: 10px;
+    background-color: white;
+    /* Fondo del Paper */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Sombra ligera */
+    border-radius: 8px;
+    /* Bordes redondeados */
+}
+
+/* Aumentar la especificidad para centrar el texto en todas las celdas */
+.MuiDataGrid-root .MuiDataGrid-cell {
+    text-align: center !important;
+    /* Centrar el texto en todas las celdas */
+    font-family: "DM Sans", sans-serif !important;
+}
+
+.MuiDataGrid-root .MuiDataGrid-toolbarContainer {
+    gap: 20px;
+}
+
+/* Optimización para el renderizado de texto */
+.MuiDataGrid-root {
+    -webkit-font-smoothing: antialiased;
+    /* Mejora la suavidad de las fuentes */
+    -moz-osx-font-smoothing: grayscale;
+    /* Mejora la suavidad de las fuentes en macOS */
+    text-rendering: optimizeLegibility;
+    /* Mejora la legibilidad en todos los navegadores */
+}
+
+.MuiDataGrid-root .MuiDataGrid-cell {
+    font-size: 14px;
+    /* Ajusta el tamaño de fuente si es necesario */
+    line-height: 1.5;
+    /* Mejora la legibilidad de las filas */
+}
