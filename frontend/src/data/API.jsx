@@ -18,7 +18,7 @@ const handleApiError = (err) => {
     if (err.response && err.response.status === 401) {
         localStorage.removeItem("token");
         localStorage.setItem("isLoggedIn", "false");
-        window.location.href = "/registros/login";
+        window.location.href = "/tickets/login";
     }
     throw err;
 };
