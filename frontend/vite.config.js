@@ -10,5 +10,9 @@ export default defineConfig({
     port: 3002
   },
   plugins: [react()],
-  base: '/registros/'
+  base: '/tickets/',
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 });

@@ -36,7 +36,7 @@ const Login = () => {
       localStorage.setItem("usuario", usuario);
       localStorage.setItem("id_usuario", data.userId);
 
-      window.location.href = "/registros/inicio";
+      window.location.href = "/tickets/inicio";
     } catch (err) {
       setError(err.message);
     }
@@ -69,7 +69,7 @@ const Login = () => {
           alt="Logo Congreso"
           sx={{ width: 230, mb: 2 }}
         />
-        
+
         <Typography variant="h5" fontWeight="bold">
           Sistema de Registro de Visitas
         </Typography>

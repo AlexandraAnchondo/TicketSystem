@@ -44,7 +44,7 @@ const router = createBrowserRouter(
     }
   ],
   {
-    basename: '/registros',
+    basename: '/tickets',
   }
 );
 
