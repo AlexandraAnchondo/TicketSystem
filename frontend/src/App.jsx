@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Outlet } from 'react-router';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import HomeIcon from '@mui/icons-material/Home';
 import logo from './assets/Avatar.png';
 import "./styles/App.css";
 
@@ -30,7 +31,7 @@ export default function App() {
     {
       segment: 'inicio',
       title: 'Inicio',
-      icon: <DashboardIcon />,
+      icon: <HomeIcon />,
       pattern: 'inicio',
     },
     {

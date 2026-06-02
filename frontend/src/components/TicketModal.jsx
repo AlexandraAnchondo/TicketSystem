@@ -32,13 +32,19 @@ import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 
 import { updateTicketStatus, addTicketComment } from '../data/API';
-import './TicketModal.css';
+import '../styles/TicketModal.css';
 
 const priorityMeta = {
   critical: { label: 'Crítica', color: '#dc2626' },
   high: { label: 'Alta', color: '#ea580c' },
   medium: { label: 'Media', color: '#ca8a04' },
   low: { label: 'Baja', color: '#16a34a' },
+};
+
+const difficultyMeta = {
+  low: { label: 'Baja', color: '#16a34a' },
+  medium: { label: 'Media', color: '#ca8a04' },
+  high: { label: 'Alta', color: '#dc2626' },
 };
 
 const statusOptions = [
@@ -97,6 +103,11 @@ const TicketModal = ({ open, ticket, onClose, onUpdate }) => {
 
   const priority = priorityMeta[ticket.priority] || {
     label: ticket.priority || 'Sin urgencia',
+    color: '#64748b',
+  };
+
+  const difficulty = difficultyMeta[ticket.difficulty] || {
+    label: ticket.difficulty || 'Sin dificultad',
     color: '#64748b',
   };
 
@@ -227,7 +238,8 @@ const TicketModal = ({ open, ticket, onClose, onUpdate }) => {
                 <DetailItem
                   icon={<SpeedRoundedIcon />}
                   label="Dificultad"
-                  value={ticket.difficulty || 'Media'}
+                  value={difficulty.label}
+                  color={difficulty.color}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

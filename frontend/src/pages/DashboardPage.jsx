@@ -18,12 +18,14 @@ import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import HourglassTopRoundedIcon from '@mui/icons-material/HourglassTopRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 
 import { getTickets, getTicketStats } from '../data/API';
 import TicketCard from '../components/TicketCard';
 import TicketModal from '../components/TicketModal';
+import CreateTicketModal from '../components/CreateTicketModal';
 import FilterBar from '../components/FilterBar';
-import './DashboardPage.css';
+import '../styles/DashboardPage.css';
 
 const statConfig = [
   {
@@ -56,6 +58,7 @@ const DashboardPage = () => {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -174,7 +177,7 @@ const DashboardPage = () => {
                   Sistema de tickets de soporte
                 </Typography>
                 <Typography variant="body1" className="dashboard-subtitle">
-                  Gestiona, prioriza y da seguimiento a las actividades del ingeniero de soporte técnico.
+                  Gestiona, prioriza y da seguimiento a las actividades de soporte técnico.
                 </Typography>
               </Box>
 
@@ -228,17 +231,28 @@ const DashboardPage = () => {
               </Typography>
             </Box>
 
-            <Button
-              startIcon={<RefreshRoundedIcon />}
-              onClick={() => {
-                fetchTickets();
-                fetchStats();
-              }}
-              variant="outlined"
-              sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 700 }}
-            >
-              Actualizar
-            </Button>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Button
+                startIcon={<AddRoundedIcon />}
+                onClick={() => setShowCreateModal(true)}
+                variant="contained"
+                sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 800, backgroundColor: "var(--buttons) !important" }}
+              >
+                Nuevo ticket
+              </Button>
+
+              <Button
+                startIcon={<RefreshRoundedIcon />}
+                onClick={() => {
+                  fetchTickets();
+                  fetchStats();
+                }}
+                variant="outlined"
+                sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 700, borderColor: "var(--buttons) !important" }}
+              >
+                Actualizar
+              </Button>
+            </Stack>
           </Stack>
 
           {loading ? (
@@ -278,6 +292,16 @@ const DashboardPage = () => {
           )}
         </Box>
       </Container>
+
+
+      <CreateTicketModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={() => {
+          fetchTickets();
+          fetchStats();
+        }}
+      />
 
       <TicketModal
         open={showModal}

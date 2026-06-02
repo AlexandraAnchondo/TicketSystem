@@ -14,11 +14,19 @@
     /* Backgrounds */
     --background-color: #ffffff;
     --bg-main: #eaeaea;
+    --dashboard-gradient: radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 34%),
+        linear-gradient(135deg, #eef2ff 0%, #f8fafc 45%, #f5f3ff 100%);
+    --meta-bg: #f8fafc;
+    --ticket-modal-gradient: radial-gradient(circle at top left, rgba(79, 70, 229, 0.12), transparent 34%),
+        #ffffff;
+    --description-gradient: linear-gradient(135deg, #ffffff, #f8fafc);
 
     /* Borders */
     --border-color: #cccccc;
     --avatar-border: #e6e6e6;
     --border-color: #ddd;
+    --meta-border: #eef2f7;
+    --stat-border: #e2e8f0;
 
     /* Sections */
     --section-color: #f7f7f7;
@@ -50,9 +58,11 @@
     --legend: #310072;
     --time: #280072;
     --header-text: #575757;
+    --tag-color: #ecdff7;
 
     /* Header */
     --header-color: #ffffff;
+    --dashboard-title: #0f172a;
 }
 
 [data-toolpad-color-scheme="dark"] {
@@ -68,11 +78,19 @@
     /* Backgrounds */
     --background-color: #242424;
     --bg-main: #000000;
+    --dashboard-gradient: radial-gradient(circle at top left, rgba(127, 128, 219, 0.445), transparent 34%),
+            linear-gradient(135deg, #292929 0%, #1f1f1f 45%, #000000 100%);
+    --meta-bg: #1f1f1f;
+    --ticket-modal-gradient: radial-gradient(circle at top left, rgba(79, 70, 229, 0.12), transparent 34%),
+            #1f1f1f;
+    --description-gradient: linear-gradient(135deg, #272727, #383838);
 
     /* Borders */
     --border-color: #555;
     --avatar-border: #c5e0ff;
     --border-color: #ddd;
+    --meta-border: #333;
+    --stat-border: #333;
 
     /* Sections */
     --section-color: #2e2e2e57;
@@ -100,9 +118,10 @@
     --legend: #350072;
     --time: #310072;
     --header-text: #ffffff;
-    
+    --tag-color: #b5aabe;
     /* Header */
     --header-color: #0e0e0e;
+    --dashboard-title: #8793d8;
 }
 
 .MuiToolbar-root,

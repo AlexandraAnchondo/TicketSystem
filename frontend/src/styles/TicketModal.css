@@ -1,19 +1,16 @@
 .ticket-modal-paper {
   border-radius: 28px !important;
   overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 1)) !important;
+  background: var(--dashboard-gradient) !important;
 }
 
 .ticket-modal-header {
   padding: 24px 26px !important;
-  background:
-    radial-gradient(circle at top left, rgba(79, 70, 229, 0.12), transparent 34%),
-    #ffffff;
+  background: var(--ticket-modal-gradient)
 }
 
 .modal-close-button {
-  background: #f1f5f9 !important;
+  background: var(--bg-main) !important;
 }
 
 .ticket-modal-content {
@@ -22,19 +19,19 @@
 
 .ticket-modal-actions {
   padding: 16px 26px !important;
-  background: #ffffff;
+  background: var(--background-color);
 }
 
 .modal-section {
   padding: 18px;
   border-radius: 22px !important;
   border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: var(--background-color) !important;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
 }
 
 .description-section {
-  background: linear-gradient(135deg, #ffffff, #f8fafc) !important;
+  background: var(--description-gradient) !important;
 }
 
 .description-text {
@@ -49,8 +46,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f8fafc !important;
-  border: 1px solid #eef2f7;
+  background: var(--meta-bg) !important;
+  border: 1px solid var(--meta-border);
 }
 
 .detail-icon {
@@ -67,8 +64,8 @@
 
 .status-toggle-group .MuiToggleButton-root {
   border-radius: 14px !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #475569;
+  border: 1px solid varr(--stat-border) !important;
+  color: var(--buttons);
   font-weight: 850;
   text-transform: none;
 }

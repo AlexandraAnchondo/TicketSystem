@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
-import './FilterBar.css';
+import '../styles/FilterBar.css';
 
 const timeRangeOptions = [
   { value: 'today', label: 'Hoy' },

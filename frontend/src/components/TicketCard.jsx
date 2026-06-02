@@ -15,7 +15,7 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import PriorityHighRoundedIcon from '@mui/icons-material/PriorityHighRounded';
-import './TicketCard.css';
+import '../styles/TicketCard.css';
 
 const priorityMeta = {
   critical: { label: 'Crítica', color: '#dc2626', bg: '#fef2f2' },
@@ -58,7 +58,15 @@ const TicketCard = ({ ticket, onClick }) => {
     <Card
       className="ticket-card"
       elevation={0}
-      sx={{ '--priority-color': priority.color, '--priority-bg': priority.bg }}
+      sx={{
+          '--priority-color': priority.color, 
+          '--priority-bg': priority.bg, 
+          transition: "0.25s",
+          "&:hover": {
+            transform: "translateY(-4px)",
+            boxShadow: 6
+          } 
+        }}
     >
       <CardActionArea onClick={onClick} className="ticket-action">
         <Box className="ticket-priority-strip" />
