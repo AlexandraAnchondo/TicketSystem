@@ -31,7 +31,7 @@ import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 
-import { updateTicketStatus, addTicketComment } from '../services/api';
+import { updateTicketStatus, addTicketComment } from '../data/API';
 import './TicketModal.css';
 
 const priorityMeta = {

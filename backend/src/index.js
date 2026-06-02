@@ -11,6 +11,7 @@ app.use(express.json());
 app.use(cors({ origin: true, credentials: true }));
 
 const usuarioRoutes = require('./routes/usuarios.routes');
+const ticketsRoutes = require('./routes/tickets.routes');
 
 // SQL
 const config_prod = {
@@ -36,6 +37,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // RUTAS
 app.use(usuarioRoutes);
+app.use(ticketsRoutes);
 
 // LOGIN
 app.post('/login', async (req, res) => {

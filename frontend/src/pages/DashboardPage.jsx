@@ -19,7 +19,7 @@ import HourglassTopRoundedIcon from '@mui/icons-material/HourglassTopRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 
-import { getTickets, getTicketStats } from '../services/api';
+import { getTickets, getTicketStats } from '../data/API';
 import TicketCard from '../components/TicketCard';
 import TicketModal from '../components/TicketModal';
 import FilterBar from '../components/FilterBar';
