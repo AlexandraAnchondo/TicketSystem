@@ -1,10 +1,12 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({
+    path: path.join(process.cwd(), '.env'),
+});
 const express = require('express');
 const sql = require('mssql');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -77,8 +79,8 @@ app.post('/login', async (req, res) => {
     }
 });
 
-const port = process.env.PORT || 3003;
-const host = process.env.HOST || '0.0.0.0'; // 0.0.0.0 escucha en todas las interfaces
+const port = process.env.PORT || 3001;
+const host = process.env.HOST || 'localhost';
 
 app.listen(port, host, () => {
     console.log(`API corriendo en http://${host}:${port}`);

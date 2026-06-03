@@ -1,6 +1,9 @@
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL_DEV;
+
+const isElectron = window.location.protocol === 'file:';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -14,11 +17,12 @@ const getAuthHeaders = () => ({
 
 // Manejo de errores comunes
 const handleApiError = (err) => {
+    const navigate = useNavigate();
     console.error(err);
     if (err.response && err.response.status === 401) {
         localStorage.removeItem("token");
         localStorage.setItem("isLoggedIn", "false");
-        window.location.href = "/tickets/login";
+        navigate("/login", { replace: true });
     }
     throw err;
 };

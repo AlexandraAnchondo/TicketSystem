@@ -1,6 +1,12 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  createHashRouter,
+  RouterProvider,
+  Navigate,
+} from 'react-router-dom';
+
 import App from './App';
 import Layout from './layouts/dashboard';
 import Inicio from './pages/Inicio';
@@ -17,45 +23,48 @@ function PrivateRoute({ children }) {
   return children;
 }
 
-const router = createBrowserRouter(
-  [
-    {
-      path: "/login",
-      element: <Login />,
-    },
-    {
-      Component: App,
-      children: [
-        { index: true, element: <Navigate to="login" /> },
-        {
-          path: "/",
-          Component: Layout,
-          children: [
-            {
-              path: "inicio",
-              element: (
-                <PrivateRoute>
-                  <Inicio />
-                </PrivateRoute>
-              )
-            },
-            {
-              path: "dashboard",
-              element: (
-                <PrivateRoute>
-                  <DashboardPage />
-                </PrivateRoute>
-              )
-            }
-          ],
-        },
-      ],
-    }
-  ],
+const routes = [
   {
-    basename: '/tickets',
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    Component: App,
+    children: [
+      { index: true, element: <Navigate to="/login" replace /> },
+      {
+        path: "/",
+        Component: Layout,
+        children: [
+          {
+            path: "inicio",
+            element: (
+              <PrivateRoute>
+                <Inicio />
+              </PrivateRoute>
+            )
+          },
+          {
+            path: "dashboard",
+            element: (
+              <PrivateRoute>
+                <DashboardPage />
+              </PrivateRoute>
+            )
+          }
+        ],
+      },
+    ],
   }
-);
+];
+
+const isElectron = window.location.protocol === 'file:';
+
+const router = isElectron
+  ? createHashRouter(routes)
+  : createBrowserRouter(routes, {
+    basename: '/tickets',
+  });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

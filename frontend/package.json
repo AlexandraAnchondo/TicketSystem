@@ -2,14 +2,47 @@
   "name": "frontendVite",
   "version": "0.1.0",
   "main": "main.js",
-  "homepage": "./",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron-build": "npm run build && electron-builder"
+    "build": "vite build",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.alex.tickets",
+    "productName": "Sistema Tickets",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/src",
+        "to": "backend/src"
+      },
+      {
+        "from": "../backend/package.json",
+        "to": "backend/package.json"
+      },
+      {
+        "from": "../backend/.env",
+        "to": "backend/.env"
+      },
+      {
+        "from": "../backend/node_modules",
+        "to": "backend/node_modules"
+      }
+    ],
+    "asar": false,
+    "win": {
+      "target": "nsis"
+    }
   },
   "dependencies": {
     "@emotion/react": "^11",
@@ -37,7 +70,7 @@
     "@types/react-dom": "^18",
     "@vitejs/plugin-react": "^4.3.2",
     "concurrently": "^8.2.2",
-    "electron": "^42.3.0",
+    "electron": "^42.3.2",
     "electron-builder": "^26.8.1",
     "electron-is-dev": "^3.0.1",
     "eslint": "^8",

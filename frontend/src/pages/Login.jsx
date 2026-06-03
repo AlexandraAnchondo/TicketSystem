@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Paper,
@@ -19,10 +20,13 @@ import logo from "../assets/logo.png";
 import { login } from "../data/API";
 
 const Login = () => {
+  const navigate = useNavigate();
   const [usuario, setUsuario] = useState("");
   const [contraseña, setContraseña] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+
+  const isElectron = window.location.protocol === 'file:';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +40,7 @@ const Login = () => {
       localStorage.setItem("usuario", JSON.stringify(data.user));
       localStorage.setItem("id_usuario", data.userId);
 
-      window.location.href = "/tickets/inicio";
+      navigate("/inicio", { replace: true });
     } catch (err) {
       setError(err.error || "Error al iniciar sesión. Inténtalo de nuevo.");
     }
