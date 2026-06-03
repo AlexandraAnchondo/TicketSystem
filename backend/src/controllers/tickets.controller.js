@@ -21,18 +21,11 @@ const VALID_PRIORITY = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUS = ['open', 'in_progress', 'closed', 'on_hold'];
 const VALID_DIFFICULTY = ['low', 'medium', 'high'];
 
-const getUserFromReq = (req) => {
-  // Ajusta esto al nombre real que tu middleware verificarToken deja en req.
-  return req.user || req.usuario || req.userData || null;
-};
-
-const getUserId = (req) => {
-  const user = getUserFromReq(req);
+const getUserId = (user) => {
   return user?.id || user?.IdUsuario || user?.userId || null;
 };
 
-const getUserName = (req) => {
-  const user = getUserFromReq(req);
+const getUserName = (user) => {
   return user?.nombre || user?.NombreUsuario || user?.usuario || user?.Usuario || 'Usuario';
 };
 
@@ -238,7 +231,10 @@ exports.createTicket = async (req, res) => {
       difficulty = 'medium',
       status = 'open',
       assignedTo,
+      author
     } = req.body;
+
+    const user = JSON.parse(author);
 
     if (!subject || !String(subject).trim()) {
       return res.status(400).json({ error: 'El asunto del ticket es obligatorio' });
@@ -256,7 +252,7 @@ exports.createTicket = async (req, res) => {
       return res.status(400).json({ error: 'Estado inválido' });
     }
 
-    const createdBy = getUserId(req);
+    const createdBy = getUserId(user);
     const result = await pool.request()
       .input('subject', sql.NVarChar(200), String(subject).trim())
       .input('description', sql.NVarChar(sql.MAX), description || null)
@@ -326,7 +322,10 @@ exports.updateTicket = async (req, res) => {
       difficulty,
       status,
       assignedTo,
+      author
     } = req.body;
+
+    const user = JSON.parse(author);
 
     if (priority && !VALID_PRIORITY.includes(priority)) {
       return res.status(400).json({ error: 'Prioridad inválida' });
@@ -385,7 +384,7 @@ exports.updateTicket = async (req, res) => {
         .input('ticketId', sql.Int, ticketId)
         .input('oldStatus', sql.VarChar(20), oldTicket.status)
         .input('newStatus', sql.VarChar(20), status)
-        .input('changedBy', sql.Int, getUserId(req))
+        .input('changedBy', sql.Int, getUserId(user))
         .query(`
           INSERT INTO TicketStatusHistory (ticketId, oldStatus, newStatus, changedBy)
           VALUES (@ticketId, @oldStatus, @newStatus, @changedBy);
@@ -423,7 +422,9 @@ exports.updateTicketStatus = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
-    const { status } = req.body;
+    const { status, author } = req.body;
+
+    const user = JSON.parse(author);
 
     if (!VALID_STATUS.includes(status)) {
       return res.status(400).json({ error: 'Estado inválido' });
@@ -461,7 +462,7 @@ exports.updateTicketStatus = async (req, res) => {
         .input('ticketId', sql.Int, ticketId)
         .input('oldStatus', sql.VarChar(20), oldStatus)
         .input('newStatus', sql.VarChar(20), status)
-        .input('changedBy', sql.Int, getUserId(req))
+        .input('changedBy', sql.Int, getUserId(user))
         .query(`
           INSERT INTO TicketStatusHistory (ticketId, oldStatus, newStatus, changedBy)
           VALUES (@ticketId, @oldStatus, @newStatus, @changedBy);
@@ -479,7 +480,9 @@ exports.assignTicket = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
-    const assignedTo = normalizeNullableNumber(req.body.userId);
+    const { userId, author } = req.body;
+    const user = JSON.parse(author);
+    const assignedTo = normalizeNullableNumber(user.IdUsuario);
 
     const result = await pool.request()
       .input('id', sql.Int, ticketId)
@@ -506,7 +509,9 @@ exports.addTicketComment = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
-    const { comment } = req.body;
+    const { comment, author } = req.body;
+
+    const user = JSON.parse(author);
 
     if (!comment || !String(comment).trim()) {
       return res.status(400).json({ error: 'El comentario es obligatorio' });
@@ -523,8 +528,8 @@ exports.addTicketComment = async (req, res) => {
     const result = await pool.request()
       .input('ticketId', sql.Int, ticketId)
       .input('comment', sql.NVarChar(sql.MAX), String(comment).trim())
-      .input('authorId', sql.Int, getUserId(req))
-      .input('authorName', sql.NVarChar(150), getUserName(req))
+      .input('authorId', sql.Int, getUserId(user))
+      .input('authorName', sql.NVarChar(150), getUserName(user))
       .query(`
         INSERT INTO TicketComments (ticketId, comment, authorId, authorName)
         OUTPUT
@@ -711,7 +716,7 @@ exports.getUsers = async (_req, res) => {
   try {
     const pool = await getConnection();
     const result = await pool.request().query(`
-      SELECT IdUsuario AS id, NombreUsuario AS nombre, Usuario AS usuario
+      SELECT IdUsuario AS id, NombreUsuario AS nombre
       FROM Cat_Usuario
       ORDER BY NombreUsuario;
     `);

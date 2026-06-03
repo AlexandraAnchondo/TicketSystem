@@ -84,7 +84,8 @@ export const getTicketById = async (ticketId) => {
  */
 export const createTicket = async (ticketData) => {
     try {
-        const response = await api.post('/tickets', ticketData, { headers: getAuthHeaders() });
+        const author = localStorage.getItem("usuario");
+        const response = await api.post('/tickets', { ...ticketData, author }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -96,7 +97,8 @@ export const createTicket = async (ticketData) => {
  */
 export const updateTicket = async (ticketId, ticketData) => {
     try {
-        const response = await api.put(`/tickets/${ticketId}`, ticketData, { headers: getAuthHeaders() });
+        const author = localStorage.getItem("usuario");
+        const response = await api.put(`/tickets/${ticketId}`, { ...ticketData, author }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -109,6 +111,57 @@ export const updateTicket = async (ticketId, ticketData) => {
 export const deleteTicket = async (ticketId) => {
     try {
         const response = await api.delete(`/tickets/${ticketId}`, { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Cambiar estado de un ticket
+ */
+export const updateTicketStatus = async (ticketId, status) => {
+    try {
+        const author = localStorage.getItem("usuario");
+        const response = await api.patch(`/tickets/${ticketId}/status`, { status, author }, { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Asignar ticket a un usuario
+ */
+export const assignTicket = async (ticketId, userId) => {
+    try {
+        const author = localStorage.getItem("usuario");
+        const response = await api.patch(`/tickets/${ticketId}/assign`, { userId, author }, { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Agregar comentario a un ticket
+ */
+export const addTicketComment = async (ticketId, comment) => {
+    try {
+        const author = localStorage.getItem("usuario");
+        const response = await api.post(`/tickets/${ticketId}/comments`, { comment, author }, { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Obtener estadísticas de tickets
+ */
+export const getTicketStats = async (filters = {}) => {
+    try {
+        const response = await api.get('/tickets/stats', { params: filters, headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -160,54 +213,6 @@ export const getWeekTickets = async (startDate, endDate) => {
 export const getMonthTickets = async (year, month) => {
     try {
         const response = await api.get(`/tickets/grouped/by-month?year=${year}&month=${month}`, { headers: getAuthHeaders() });
-        return response.data;
-    } catch (error) {
-        handleApiError(error);
-    }
-};
-
-/**
- * Cambiar estado de un ticket
- */
-export const updateTicketStatus = async (ticketId, status) => {
-    try {
-        const response = await api.patch(`/tickets/${ticketId}/status`, { status }, { headers: getAuthHeaders() });
-        return response.data;
-    } catch (error) {
-        handleApiError(error);
-    }
-};
-
-/**
- * Asignar ticket a un usuario
- */
-export const assignTicket = async (ticketId, userId) => {
-    try {
-        const response = await api.patch(`/tickets/${ticketId}/assign`, { userId } , { headers: getAuthHeaders() });
-        return response.data;
-    } catch (error) {
-        handleApiError(error);
-    }
-};
-
-/**
- * Agregar comentario a un ticket
- */
-export const addTicketComment = async (ticketId, comment) => {
-    try {
-        const response = await api.post(`/tickets/${ticketId}/comments`, { comment }, { headers: getAuthHeaders() });
-        return response.data;
-    } catch (error) {
-        handleApiError(error);
-    }
-};
-
-/**
- * Obtener estadísticas de tickets
- */
-export const getTicketStats = async (filters = {}) => {
-    try {
-        const response = await api.get('/tickets/stats', { params: filters, headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);

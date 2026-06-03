@@ -12,7 +12,7 @@
 }
 
 .filter-title {
-  color: #475569;
+  color: var(--text-headers);
   font-weight: 900;
   margin-bottom: 14px;
 }

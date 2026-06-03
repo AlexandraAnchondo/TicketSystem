@@ -305,7 +305,7 @@ const DashboardPage = () => {
 
       <TicketModal
         open={showModal}
-        ticket={selectedTicket}
+        ticket_id={selectedTicket?.id || null}
         onClose={() => setShowModal(false)}
         onUpdate={() => {
           fetchTickets();

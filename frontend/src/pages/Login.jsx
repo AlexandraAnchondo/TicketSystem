@@ -33,7 +33,7 @@ const Login = () => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("usuario", usuario);
+      localStorage.setItem("usuario", JSON.stringify(data.user));
       localStorage.setItem("id_usuario", data.userId);
 
       window.location.href = "/tickets/inicio";

@@ -12,7 +12,7 @@
     --table-text: #000;
 
     /* Backgrounds */
-    --background-color: #ffffff;
+    --background-color: #ffffffc9;
     --bg-main: #eaeaea;
     --dashboard-gradient: radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 34%),
         linear-gradient(135deg, #eef2ff 0%, #f8fafc 45%, #f5f3ff 100%);

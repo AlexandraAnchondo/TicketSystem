@@ -31,7 +31,7 @@ import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 
-import { updateTicketStatus, addTicketComment } from '../data/API';
+import { updateTicketStatus, addTicketComment, getTicketById } from '../data/API';
 import '../styles/TicketModal.css';
 
 const priorityMeta = {
@@ -88,16 +88,29 @@ const DetailItem = ({ icon, label, value, color }) => (
   </Paper>
 );
 
-const TicketModal = ({ open, ticket, onClose, onUpdate }) => {
+const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [comments, setComments] = useState([]);
+  const [ticket, setTicket] = useState(null);
 
   useEffect(() => {
-    setComments(ticket?.comments || []);
-    setNewComment('');
-  }, [ticket]);
+    const fetchTicket = async () => {
+      if (ticket_id) {
+        try {
+          const ticketData = await getTicketById(ticket_id);
+          setTicket(ticketData);
+          setComments(ticketData.comments || []);
+          setNewComment('');
+        } catch (error) {
+          console.error('Error fetching ticket:', error);
+        }
+      }
+    };
+
+    fetchTicket();
+  }, [ticket_id]);
 
   if (!ticket) return null;
 
@@ -143,10 +156,17 @@ const TicketModal = ({ open, ticket, onClose, onUpdate }) => {
     }
   };
 
+  const handleClose = () => {
+    setTicket(null);
+    setComments([]);
+    setNewComment('');
+    onClose();
+  };
+
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       fullWidth
       maxWidth="md"
       scroll="paper"

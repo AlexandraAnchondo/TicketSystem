@@ -71,7 +71,7 @@ app.post('/login', async (req, res) => {
             { expiresIn: '4h' } // expira en 4 horas
         );
 
-        res.json({ token, userId: user.IdUsuario });
+        res.json({ token, userId: user.IdUsuario, user: user });
     } catch (err) {
         res.status(500).send(err.message);
     }

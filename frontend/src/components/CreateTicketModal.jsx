@@ -46,7 +46,7 @@ const initialForm = {
   areaId: '',
   priority: 'medium',
   difficulty: 'medium',
-  assignedTo: 'Hael Osuna',
+  assignedTo: '',
 };
 
 const getOptionId = (item) => item.id ?? item.areaId ?? item.IdArea ?? item.Id ?? item.userId ?? item.IdUsuario;
@@ -127,7 +127,7 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
         areaId: form.areaId || null,
         priority: form.priority,
         difficulty: form.difficulty,
-        assignedTo: form.assignedTo || "Hael Osuna",
+        assignedTo: form.assignedTo || null,
         status: 'open',
       };
 
@@ -291,14 +291,11 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
                 <InputLabel>Asignar a</InputLabel>
                 <Select
                   label="Asignar a"
-                  value={form.assignedTo || 'Hael Osuna'}
+                  value={form.assignedTo}
                   onChange={handleChange('assignedTo')}
                 >
                   <MenuItem value="">
                     <em>Sin asignar</em>
-                  </MenuItem>
-                  <MenuItem value="Hael Osuna">
-                    Hael Osuna
                   </MenuItem>
                   {users.map((user) => {
                     const id = getOptionId(user);
