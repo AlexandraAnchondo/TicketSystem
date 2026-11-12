@@ -93,7 +93,7 @@ const Login = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Person />
+                  <Person />CBC/
                 </InputAdornment>
               )
             }}
@@ -161,7 +161,7 @@ const Login = () => {
             ¿No tienes una cuenta?
           </Typography>
           <Typography variant="subtitle1" color="text.secondary" mb={3}>
-            Contacta a Alexandra Anchondo.
+            Contacta al departamento de <i></i>informática.
           </Typography>
         </form>
       </Paper>

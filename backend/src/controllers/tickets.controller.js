@@ -20,9 +20,10 @@ async function getConnection() {
 const VALID_PRIORITY = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUS = ['open', 'in_progress', 'closed', 'on_hold'];
 const VALID_DIFFICULTY = ['low', 'medium', 'high'];
+const VALID_SERVICE_TYPES = ['Sistemas', 'Soporte Técnico'];
 
 const getUserId = (user) => {
-  return user?.id || user?.IdUsuario || user?.userId || null;
+  return user?.id || user?.IdUsuario || user?.userId || user?.idUsuario || null;
 };
 
 const getUserName = (user) => {
@@ -41,7 +42,10 @@ const mapTicketRow = (row) => ({
   description: row.description,
   attendedPerson: row.attendedPerson,
   areaId: row.areaId,
+  departmentId: row.departmentId,
   area: row.area,
+  activityId: row.activityId,
+  serviceType: row.serviceType,
   priority: row.priority,
   difficulty: row.difficulty,
   status: row.status,
@@ -108,7 +112,7 @@ exports.getTickets = async (req, res) => {
         t.subject LIKE @search OR
         t.description LIKE @search OR
         t.attendedPerson LIKE @search OR
-        a.nombre LIKE @search
+        COALESCE(t.departmentName, a.nombre) LIKE @search
       )`;
       request.input('search', sql.NVarChar(250), `%${String(search).trim()}%`);
     }
@@ -120,7 +124,10 @@ exports.getTickets = async (req, res) => {
         t.description,
         t.attendedPerson,
         t.areaId,
-        a.nombre AS area,
+        t.departmentId,
+        COALESCE(t.departmentName, a.nombre) AS area,
+        t.activityId,
+        t.serviceType,
         t.priority,
         t.difficulty,
         t.status,
@@ -173,7 +180,10 @@ exports.getTicketById = async (req, res) => {
           t.description,
           t.attendedPerson,
           t.areaId,
-          a.nombre AS area,
+          t.departmentId,
+          COALESCE(t.departmentName, a.nombre) AS area,
+          t.activityId,
+          t.serviceType,
           t.priority,
           t.difficulty,
           t.status,
@@ -223,22 +233,60 @@ exports.createTicket = async (req, res) => {
   try {
     const pool = await getConnection();
     const {
-      subject,
+      activityId,
       description,
       attendedPerson,
-      areaId,
+      departmentId,
+      serviceType,
       priority = 'medium',
       difficulty = 'medium',
       status = 'open',
-      assignedTo,
-      author
     } = req.body;
 
-    const user = JSON.parse(author);
-
-    if (!subject || !String(subject).trim()) {
-      return res.status(400).json({ error: 'El asunto del ticket es obligatorio' });
+    const activityIdNumber = normalizeNullableNumber(activityId);
+    if (!Number.isSafeInteger(activityIdNumber) || activityIdNumber <= 0) {
+      return res.status(400).json({ error: 'Selecciona una actividad válida' });
     }
+
+    if (!VALID_SERVICE_TYPES.includes(serviceType)) {
+      return res.status(400).json({ error: 'Tipo de servicio inválido' });
+    }
+
+    if (!attendedPerson || !String(attendedPerson).trim()) {
+      return res.status(400).json({ error: 'La persona atendida es obligatoria' });
+    }
+
+    const activityResult = await pool.request()
+      .input('activityId', sql.Int, activityIdNumber)
+      .query(`
+        SELECT name
+        FROM dbo.Activities
+        WHERE id = @activityId AND active = 1;
+      `);
+
+    if (!activityResult.recordset.length) {
+      return res.status(400).json({ error: 'La actividad seleccionada no está disponible' });
+    }
+
+    const departmentIdNumber = normalizeNullableNumber(departmentId);
+    if (!Number.isSafeInteger(departmentIdNumber) || departmentIdNumber <= 0) {
+      return res.status(400).json({ error: 'Selecciona un área válida' });
+    }
+
+    const departmentResult = await pool.request()
+      .input('departmentId', sql.Int, departmentIdNumber)
+      .query(`
+        SELECT TOP (1) COALESCE(NULLIF(LTRIM(RTRIM(DepartamentoNombre)), N''), Departamento) AS name
+        FROM [SIC_2026].[dbo].[P_Departamentos]
+        WHERE IdDepartamento = @departmentId
+          AND (TRY_CONVERT(int, Status) = 1
+            OR UPPER(LTRIM(RTRIM(CONVERT(nvarchar(30), Status)))) IN (N'ACTIVO', N'ACTIVE', N'A'));
+      `);
+
+    if (!departmentResult.recordset.length) {
+      return res.status(400).json({ error: 'El área seleccionada no está disponible' });
+    }
+    const departmentName = departmentResult.recordset[0].name;
 
     if (!VALID_PRIORITY.includes(priority)) {
       return res.status(400).json({ error: 'Prioridad inválida' });
@@ -252,23 +300,32 @@ exports.createTicket = async (req, res) => {
       return res.status(400).json({ error: 'Estado inválido' });
     }
 
-    const createdBy = getUserId(user);
+    const createdBy = getUserId(req.user);
+    if (!createdBy) {
+      return res.status(401).json({ error: 'No fue posible identificar al usuario autenticado' });
+    }
     const result = await pool.request()
-      .input('subject', sql.NVarChar(200), String(subject).trim())
+      .input('subject', sql.NVarChar(200), activityResult.recordset[0].name)
       .input('description', sql.NVarChar(sql.MAX), description || null)
-      .input('attendedPerson', sql.NVarChar(150), attendedPerson || null)
-      .input('areaId', sql.Int, normalizeNullableNumber(areaId))
+      .input('attendedPerson', sql.NVarChar(150), String(attendedPerson).trim())
+      .input('activityId', sql.Int, activityIdNumber)
+      .input('departmentId', sql.Int, departmentIdNumber)
+      .input('departmentName', sql.NVarChar(200), departmentName)
+      .input('serviceType', sql.NVarChar(30), serviceType)
       .input('priority', sql.VarChar(20), priority)
       .input('difficulty', sql.VarChar(20), difficulty)
       .input('status', sql.VarChar(20), status)
-      .input('assignedTo', sql.Int, normalizeNullableNumber(assignedTo))
+      .input('assignedTo', sql.Int, createdBy)
       .input('createdBy', sql.Int, createdBy)
       .query(`
         INSERT INTO Tickets (
           subject,
           description,
           attendedPerson,
-          areaId,
+          activityId,
+          departmentId,
+          departmentName,
+          serviceType,
           priority,
           difficulty,
           status,
@@ -281,7 +338,10 @@ exports.createTicket = async (req, res) => {
           @subject,
           @description,
           @attendedPerson,
-          @areaId,
+          @activityId,
+          @departmentId,
+          @departmentName,
+          @serviceType,
           @priority,
           @difficulty,
           @status,
@@ -700,15 +760,38 @@ exports.getAreas = async (_req, res) => {
   try {
     const pool = await getConnection();
     const result = await pool.request().query(`
-      SELECT id, nombre, descripcion
-      FROM Areas
-      WHERE activo = 1
-      ORDER BY nombre;
+      SELECT
+        IdDepartamento AS id,
+        IdDepartamento AS departmentId,
+        IdPrograma AS programId,
+        Departamento,
+        COALESCE(NULLIF(LTRIM(RTRIM(DepartamentoNombre)), N''), Departamento) AS nombre,
+        Status AS status
+      FROM [SIC_2026].[dbo].[P_Departamentos]
+      WHERE TRY_CONVERT(int, Status) = 1
+        OR UPPER(LTRIM(RTRIM(CONVERT(nvarchar(30), Status)))) IN (N'ACTIVO', N'ACTIVE', N'A')
+      ORDER BY COALESCE(NULLIF(LTRIM(RTRIM(DepartamentoNombre)), N''), Departamento);
     `);
     res.json(result.recordset);
   } catch (error) {
     console.error('getAreas error:', error);
     res.status(500).json({ error: 'Error al obtener áreas' });
+  }
+};
+
+exports.getActivities = async (_req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query(`
+      SELECT id, name
+      FROM dbo.Activities
+      WHERE active = 1
+      ORDER BY name;
+    `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('getActivities error:', error);
+    res.status(500).json({ error: 'Error al obtener actividades' });
   }
 };
 

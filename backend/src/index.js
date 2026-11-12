@@ -253,6 +253,9 @@ app.post('/login', async (req, res) => {
                     SELECT
                         u.IDUSUARIO,
                         u.NOMBREUSUARIO,
+                        u.NOMBRE,
+                        u.APELLIDOPATERNO,
+                        u.APELLIDOMATERNO,
                         u.BLOQUEADO,
                         e.CLAVEESTATUS,
                         e.ACTIVO AS ESTATUSACTIVO
@@ -286,6 +289,23 @@ app.post('/login', async (req, res) => {
             token,
             userId: user.IDUSUARIO,
             usuario: user.NOMBREUSUARIO,
+            user: {
+                id: user.IDUSUARIO,
+                IdUsuario: user.IDUSUARIO,
+                userId: user.IDUSUARIO,
+                usuario: user.NOMBREUSUARIO,
+                NombreUsuario: user.NOMBREUSUARIO,
+                nombre: [
+                    user.NOMBRE,
+                    user.APELLIDOPATERNO,
+                    user.APELLIDOMATERNO,
+                ].filter(Boolean).join(' '),
+                nombreCompleto: [
+                    user.NOMBRE,
+                    user.APELLIDOPATERNO,
+                    user.APELLIDOMATERNO,
+                ].filter(Boolean).join(' '),
+            },
         });
     } catch (err) {
         console.error('Error al iniciar sesión:', err.message);

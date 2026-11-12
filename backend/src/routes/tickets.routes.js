@@ -19,6 +19,7 @@ router.patch('/tickets/:id/assign', verificarToken, ticketsController.assignTick
 router.post('/tickets/:id/comments', verificarToken, ticketsController.addTicketComment);
 
 router.get('/areas', verificarToken, ticketsController.getAreas);
+router.get('/activities', verificarToken, ticketsController.getActivities);
 router.get('/users', verificarToken, ticketsController.getUsers);
 
 module.exports = router;

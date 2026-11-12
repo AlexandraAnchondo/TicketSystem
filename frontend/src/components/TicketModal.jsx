@@ -30,6 +30,7 @@ import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
+import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 
 import { updateTicketStatus, addTicketComment, getTicketById } from '../data/API';
 import '../styles/TicketModal.css';
@@ -237,6 +238,13 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
                   icon={<ApartmentRoundedIcon />}
                   label="Área"
                   value={ticket.area || 'N/A'}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <DetailItem
+                  icon={<SupportAgentRoundedIcon />}
+                  label="Tipo de servicio"
+                  value={ticket.serviceType || 'N/A'}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

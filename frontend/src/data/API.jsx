@@ -88,8 +88,7 @@ export const getTicketById = async (ticketId) => {
  */
 export const createTicket = async (ticketData) => {
     try {
-        const author = localStorage.getItem("usuario");
-        const response = await api.post('/tickets', { ...ticketData, author }, { headers: getAuthHeaders() });
+        const response = await api.post('/tickets', ticketData, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -231,6 +230,18 @@ export const getMonthTickets = async (year, month) => {
 export const getAreas = async () => {
     try {
         const response = await api.get('/areas', { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Obtener actividades activas para crear tickets
+ */
+export const getActivities = async () => {
+    try {
+        const response = await api.get('/activities', { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);

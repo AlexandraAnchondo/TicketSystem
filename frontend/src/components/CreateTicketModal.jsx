@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   CircularProgress,
@@ -10,6 +11,7 @@ import {
   DialogTitle,
   Divider,
   FormControl,
+  FormHelperText,
   Grid,
   IconButton,
   InputLabel,
@@ -22,8 +24,10 @@ import {
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded';
+import BusinessCenterRoundedIcon from '@mui/icons-material/BusinessCenterRounded';
+import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 
-import { createTicket, getAreas, getUsers } from '../data/API';
+import { createTicket, getActivities, getAreas } from '../data/API';
 
 const priorityOptions = [
   { value: 'low', label: 'Baja' },
@@ -38,80 +42,94 @@ const difficultyOptions = [
   { value: 'high', label: 'Alta' },
 ];
 
+const serviceTypeOptions = ['Sistemas', 'Soporte Técnico'];
+
 const initialForm = {
-  subject: '',
+  activityId: '',
   description: '',
   attendedPerson: '',
-  area: '',
-  areaId: '',
+  departmentId: '',
+  serviceType: 'Sistemas',
   priority: 'medium',
   difficulty: 'medium',
-  assignedTo: '',
 };
 
-const getOptionId = (item) => item.id ?? item.areaId ?? item.IdArea ?? item.Id ?? item.userId ?? item.IdUsuario;
-const getAreaName = (item) => item.name ?? item.nombre ?? item.area ?? item.Nombre ?? item.Area;
-const getUserName = (item) => item.name ?? item.nombre ?? item.usuario ?? item.NombreUsuario ?? item.Usuario;
+const getOptionId = (item) => item.id ?? item.departmentId ?? item.IdDepartamento;
+const getAreaName = (item) => item.nombre ?? item.DepartamentoNombre ?? item.Departamento;
+const getActivityName = (item) => item.name ?? item.nombre;
+
+const getCurrentUserName = () => {
+  const storedUser = localStorage.getItem('usuario');
+  if (!storedUser) return 'Usuario conectado';
+
+  try {
+    const user = JSON.parse(storedUser);
+    if (typeof user === 'string') return user;
+    return user.nombreCompleto || user.nombre || user.NombreUsuario || user.usuario || 'Usuario conectado';
+  } catch {
+    return storedUser;
+  }
+};
+
+const asArray = (value) => (Array.isArray(value) ? value : value?.data || []);
 
 const CreateTicketModal = ({ open, onClose, onCreated }) => {
   const [form, setForm] = useState(initialForm);
   const [areas, setAreas] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const currentUserName = useMemo(getCurrentUserName, [open]);
 
-  const isValid = form.subject.trim() && form.description.trim() && form.attendedPerson.trim();
+  const isValid = Boolean(
+    form.activityId
+    && form.description.trim()
+    && form.attendedPerson.trim()
+    && form.departmentId
+    && form.serviceType
+  );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
 
     setForm(initialForm);
     setError('');
 
+    let active = true;
     const loadCatalogs = async () => {
       setLoadingCatalogs(true);
       try {
-        const [areasData, usersData] = await Promise.allSettled([getAreas(), getUsers()]);
-
-        if (areasData.status === 'fulfilled') {
-          const value = areasData.value;
-          setAreas(Array.isArray(value) ? value : value?.data || []);
-        }
-
-        if (usersData.status === 'fulfilled') {
-          const value = usersData.value;
-          setUsers(Array.isArray(value) ? value : value?.data || []);
+        const [areasData, activitiesData] = await Promise.all([getAreas(), getActivities()]);
+        if (active) {
+          setAreas(asArray(areasData));
+          setActivities(asArray(activitiesData));
         }
       } catch (err) {
-        console.error(err);
+        console.error('Error al cargar los catálogos del ticket:', err);
+        if (active) {
+          setAreas([]);
+          setActivities([]);
+          setError('No se pudieron cargar las actividades o áreas. Cierra y vuelve a abrir el formulario.');
+        }
       } finally {
-        setLoadingCatalogs(false);
+        if (active) setLoadingCatalogs(false);
       }
     };
 
     loadCatalogs();
+    return () => {
+      active = false;
+    };
   }, [open]);
 
   const handleChange = (field) => (event) => {
-    const value = event.target.value;
-
-    if (field === 'areaId') {
-      const selectedArea = areas.find((area) => String(getOptionId(area)) === String(value));
-      setForm((prev) => ({
-        ...prev,
-        areaId: value,
-        area: selectedArea ? getAreaName(selectedArea) : '',
-      }));
-      return;
-    }
-
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => ({ ...prev, [field]: event.target.value }));
   };
 
   const handleSubmit = async () => {
     if (!isValid) {
-      setError('Completa asunto, descripción y persona atendida.');
+      setError('Completa todos los campos obligatorios.');
       return;
     }
 
@@ -119,19 +137,16 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
     setError('');
 
     try {
-      const payload = {
-        subject: form.subject.trim(),
+      await createTicket({
+        activityId: Number(form.activityId),
         description: form.description.trim(),
         attendedPerson: form.attendedPerson.trim(),
-        area: form.area?.trim() || null,
-        areaId: form.areaId || null,
+        departmentId: Number(form.departmentId),
+        serviceType: form.serviceType,
         priority: form.priority,
         difficulty: form.difficulty,
-        assignedTo: form.assignedTo || null,
         status: 'open',
-      };
-
-      await createTicket(payload);
+      });
       onCreated?.();
       onClose();
     } catch (err) {
@@ -143,193 +158,286 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="md">
-      <DialogTitle>
+    <Dialog
+      open={open}
+      onClose={saving ? undefined : onClose}
+      fullWidth
+      maxWidth="md"
+      scroll="paper"
+      sx={{
+        '& .MuiDialog-paper': {
+          borderRadius: { xs: '22px 22px 0 0', sm: 5 },
+          background: 'var(--ticket-modal-gradient)',
+          boxShadow: '0 24px 80px rgba(15, 23, 42, 0.22)',
+          overflow: 'hidden',
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          px: { xs: 2.5, sm: 4 },
+          py: 3,
+          color: '#fff',
+          background: 'linear-gradient(120deg, #6a5fe7 0%, #8f56f1 58%, #c587ff 100%)',
+        }}
+      >
         <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <AddCircleRoundedIcon color="primary" />
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.18)', color: '#fff', width: 46, height: 46 }}>
+              <AddCircleRoundedIcon />
+            </Avatar>
             <Box>
-              <Typography variant="h6" fontWeight={900}>
+              <Typography variant="h6" fontWeight={900} color="white !important">
                 Crear nuevo ticket
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Registra una nueva actividad de soporte técnico.
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.82)' }}>
+                Registra una actividad y asigna el seguimiento al usuario conectado.
               </Typography>
             </Box>
           </Stack>
-
-          <IconButton onClick={onClose} disabled={saving}>
+          <IconButton
+            aria-label="Cerrar"
+            onClick={onClose}
+            disabled={saving}
+            sx={{ color: '#fff', bgcolor: 'rgba(255,255,255,0.12)', '&:hover': { bgcolor: 'rgba(255,255,255,0.22)' } }}
+          >
             <CloseRoundedIcon />
           </IconButton>
         </Stack>
       </DialogTitle>
 
-      <Divider />
-
-      <DialogContent sx={{ pt: 3 }}>
-        <Stack spacing={2.5}>
-          {error && (
-            <Alert severity="error" sx={{ borderRadius: 3 }}>
-              {error}
-            </Alert>
-          )}
+      <DialogContent sx={{ px: { xs: 2, sm: 4 }, py: 3, background: 'var(--dashboard-gradient)' }}>
+        <Stack spacing={2.5} mt={4}>
+          {error && <Alert severity="error" sx={{ borderRadius: 3 }}>{error}</Alert>}
 
           {loadingCatalogs && (
             <Alert severity="info" sx={{ borderRadius: 3 }}>
-              Cargando áreas y usuarios...
+              Cargando actividades y áreas...
             </Alert>
           )}
 
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="Asunto"
-                placeholder="Ej. Instalación de impresora, revisión de equipo..."
-                value={form.subject}
-                onChange={handleChange('subject')}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                multiline
-                minRows={4}
-                label="Descripción"
-                placeholder="Describe el problema o actividad realizada..."
-                value={form.description}
-                onChange={handleChange('description')}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                required
-                label="Persona atendida"
-                placeholder="Nombre de la persona solicitante"
-                value={form.attendedPerson}
-                onChange={handleChange('attendedPerson')}
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6} minWidth={200}>
-              <FormControl fullWidth>
-                <InputLabel>Área</InputLabel>
-                <Select
-                  label="Área"
-                  value={form.areaId}
-                  onChange={handleChange('areaId')}
+          <Box
+            sx={{
+              p: { xs: 2, sm: 3 },
+              borderRadius: 4,
+              bgcolor: 'var(--background-color)',
+              border: '1px solid var(--meta-border)',
+              boxShadow: '0 12px 32px rgba(15, 23, 42, 0.05)',
+            }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+              <BusinessCenterRoundedIcon color="primary" />
+              <Typography variant="subtitle1" fontWeight={850}>Datos del servicio</Typography>
+            </Stack>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <FormControl 
+                  fullWidth 
+                  required 
+                  disabled={loadingCatalogs || activities.length === 0}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 220,
+                    },
+                  }}
                 >
-                  <MenuItem value="">
-                    <em>Sin área</em>
-                  </MenuItem>
-                  {areas.map((area) => {
-                    const id = getOptionId(area);
-                    const name = getAreaName(area);
-                    return (
-                      <MenuItem key={id ?? name} value={id ?? name}>
-                        {name}
+                  <InputLabel id="ticket-activity-label">Actividad</InputLabel>
+                  <Select
+                    labelId="ticket-activity-label"
+                    label="Actividad"
+                    value={form.activityId}
+                    onChange={handleChange('activityId')}
+                  >
+                    {activities.map((activity) => (
+                      <MenuItem key={getOptionId(activity)} value={getOptionId(activity)}>
+                        {getActivityName(activity)}
                       </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {areas.length === 0 && (
-              <Grid item xs={12} minWidth={200}>
+                    ))}
+                  </Select>
+                  {!loadingCatalogs && activities.length === 0 && (
+                    <FormHelperText>No hay actividades activas en el catálogo.</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl 
+                  fullWidth 
+                  required
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 220,
+                    },
+                  }}
+                  >
+                  <InputLabel id="ticket-service-type-label">Tipo de servicio</InputLabel>
+                  <Select
+                    labelId="ticket-service-type-label"
+                    label="Tipo de servicio"
+                    value={form.serviceType}
+                    onChange={handleChange('serviceType')}
+                  >
+                    {serviceTypeOptions.map((option) => (
+                      <MenuItem key={option} value={option}>{option}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Área manual"
-                  placeholder="Captura el área si no tienes catálogo"
-                  value={form.area}
-                  onChange={handleChange('area')}
+                  required
+                  multiline
+                  minRows={4}
+                  label="Descripción"
+                  placeholder="Describe el problema o actividad realizada..."
+                  value={form.description}
+                  onChange={handleChange('description')}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 250,
+                    },
+                  }}
                 />
               </Grid>
-            )}
-
-            <Grid item xs={12} md={4} minWidth={200}>
-              <FormControl fullWidth>
-                <InputLabel>Urgencia</InputLabel>
-                <Select
-                  label="Urgencia"
-                  value={form.priority}
-                  onChange={handleChange('priority')}
-                >
-                  {priorityOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
             </Grid>
+          </Box>
 
-            <Grid item xs={12} md={4} minWidth={200}>
-              <FormControl fullWidth>
-                <InputLabel>Dificultad</InputLabel>
-                <Select
-                  label="Dificultad"
-                  value={form.difficulty}
-                  onChange={handleChange('difficulty')}
+          <Box
+            sx={{
+              p: { xs: 2, sm: 3 },
+              borderRadius: 4,
+              bgcolor: 'var(--background-color)',
+              border: '1px solid var(--meta-border)',
+              boxShadow: '0 12px 32px rgba(15, 23, 42, 0.05)',
+            }}
+          >
+            <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+              <PersonRoundedIcon color="primary" />
+              <Typography variant="subtitle1" fontWeight={850}>Personas y área</Typography>
+            </Stack>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Persona atendida"
+                  placeholder="Nombre de la persona solicitante"
+                  value={form.attendedPerson}
+                  onChange={handleChange('attendedPerson')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl 
+                  fullWidth 
+                  required 
+                  disabled={loadingCatalogs || areas.length === 0}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 220,
+                    },
+                  }}
                 >
-                  {difficultyOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={4} minWidth={200}>
-              <FormControl fullWidth>
-                <InputLabel>Asignar a</InputLabel>
-                <Select
-                  label="Asignar a"
-                  value={form.assignedTo}
-                  onChange={handleChange('assignedTo')}
-                >
-                  <MenuItem value="">
-                    <em>Sin asignar</em>
-                  </MenuItem>
-                  {users.map((user) => {
-                    const id = getOptionId(user);
-                    const name = getUserName(user);
-                    return (
-                      <MenuItem key={id ?? name} value={id ?? name}>
-                        {name}
+                  <InputLabel id="ticket-department-label">Área</InputLabel>
+                  <Select
+                    labelId="ticket-department-label"
+                    label="Área"
+                    value={form.departmentId}
+                    onChange={handleChange('departmentId')}
+                  >
+                    {areas.map((area) => (
+                      <MenuItem key={getOptionId(area)} value={getOptionId(area)}>
+                        {getAreaName(area)}
                       </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
+                    ))}
+                  </Select>
+                  {!loadingCatalogs && areas.length === 0 && (
+                    <FormHelperText>No hay áreas activas disponibles.</FormHelperText>
+                  )}
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Asignado a"
+                  value={currentUserName}
+                  InputProps={{ readOnly: true }}
+                  helperText="Se asignará automáticamente a tu usuario."
+                />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <FormControl 
+                  fullWidth
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 200,
+                    },
+                  }}
+                >
+                  <InputLabel id="ticket-priority-label">Urgencia</InputLabel>
+                  <Select
+                    labelId="ticket-priority-label"
+                    label="Urgencia"
+                    value={form.priority}
+                    onChange={handleChange('priority')}
+                  >
+                    {priorityOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <FormControl 
+                  fullWidth
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 200,
+                    },
+                  }}
+                >
+                  <InputLabel id="ticket-difficulty-label">Dificultad</InputLabel>
+                  <Select
+                    labelId="ticket-difficulty-label"
+                    label="Dificultad"
+                    value={form.difficulty}
+                    onChange={handleChange('difficulty')}
+                  >
+                    {difficultyOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-          </Grid>
+          </Box>
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 3 }}>
+      <Divider />
+      <DialogActions sx={{ px: { xs: 2, sm: 4 }, py: 2.5, bgcolor: 'var(--background-color)' }}>
         <Button
           onClick={onClose}
           variant="outlined"
           disabled={saving}
-          sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 800 }}
+          sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 800, px: 2.5 }}
         >
           Cancelar
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={saving || !isValid}
+          disabled={saving || loadingCatalogs || !isValid}
           startIcon={saving ? <CircularProgress color="inherit" size={16} /> : <SaveRoundedIcon />}
-          sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 800 }}
+          sx={{
+            borderRadius: 3,
+            textTransform: 'none',
+            fontWeight: 850,
+            px: 2.5,
+            color: '#fff !important',
+            background: 'linear-gradient(120deg, #6a5fe7 0%, #8f56f1 58%, #c587ff 100%)',
+          }}
         >
-          Guardar ticket
+          {saving ? 'Guardando...' : 'Crear ticket'}
         </Button>
       </DialogActions>
     </Dialog>
