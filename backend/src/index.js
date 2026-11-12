@@ -313,7 +313,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3008;
 const host = process.env.HOST || 'localhost';
 
 app.listen(port, host, () => {

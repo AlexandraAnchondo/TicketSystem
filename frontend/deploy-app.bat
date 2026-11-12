@@ -11,23 +11,23 @@ call npm run build
 
 :: Paso 2: Borrar carpeta html en Nginx y copiar los nuevos archivos
 echo ======================================
-echo   Reemplazando archivos en .\nginx\html... 
+echo   Reemplazando archivos en .\nginx\html\tickets... 
 echo ======================================
-rmdir /s /q .\nginx\html
-xcopy /s /e /y /i .\dist .\nginx\html
+rmdir /s /q .\nginx\html\tickets
+xcopy /s /e /y /i .\dist .\nginx\html\tickets
 
 :: Paso 3: Detener Nginx
 echo ======================================
 echo   Deteniendo Nginx... 
 echo ======================================
 cd /d .\nginx
-taskkill /f /im nginx.exe
+nssm stop TicketsNginxApp
 
 :: Paso 4: Iniciar Nginx
 echo ======================================
 echo   Iniciando Nginx... 
 echo ======================================
-start nginx
+nssm start TicketsNginxApp
 
 echo ======================================
 echo  Despliegue completado correctamente
