@@ -49,7 +49,7 @@ const initialForm = {
   description: '',
   attendedPerson: '',
   departmentId: '',
-  serviceType: 'Sistemas',
+  serviceType: 'Soporte Técnico',
   priority: 'medium',
   difficulty: 'medium',
 };
@@ -81,6 +81,11 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const currentUserName = useMemo(getCurrentUserName, [open]);
+
+  const availableActivities = useMemo(
+    () => activities.filter((activity) => activity.serviceType === form.serviceType),
+    [activities, form.serviceType]
+  );
 
   const isValid = Boolean(
     form.activityId
@@ -124,7 +129,12 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
   }, [open]);
 
   const handleChange = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+    const value = event.target.value;
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'serviceType' ? { activityId: '' } : {}),
+    }));
   };
 
   const handleSubmit = async () => {
@@ -234,7 +244,7 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
                 <FormControl 
                   fullWidth 
                   required 
-                  disabled={loadingCatalogs || activities.length === 0}
+                  disabled={loadingCatalogs || availableActivities.length === 0}
                   sx={{
                     '& .MuiInputBase-root': {
                       minWidth: 220,
@@ -248,14 +258,14 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
                     value={form.activityId}
                     onChange={handleChange('activityId')}
                   >
-                    {activities.map((activity) => (
+                    {availableActivities.map((activity) => (
                       <MenuItem key={getOptionId(activity)} value={getOptionId(activity)}>
                         {getActivityName(activity)}
                       </MenuItem>
                     ))}
                   </Select>
-                  {!loadingCatalogs && activities.length === 0 && (
-                    <FormHelperText>No hay actividades activas en el catálogo.</FormHelperText>
+                  {!loadingCatalogs && availableActivities.length === 0 && (
+                    <FormHelperText>No hay actividades activas para este tipo de servicio.</FormHelperText>
                   )}
                 </FormControl>
               </Grid>

@@ -12,6 +12,7 @@ import Layout from './layouts/dashboard';
 import Inicio from './pages/Inicio';
 import Login from './pages/Login';
 import DashboardPage from './pages/DashboardPage';
+import ActivitiesPage from './pages/ActivitiesPage';
 
 function PrivateRoute({ children }) {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -51,9 +52,18 @@ const routes = [
                 <DashboardPage />
               </PrivateRoute>
             )
-          }
+          },
+          {
+            path: "actividades",
+            element: (
+              <PrivateRoute>
+                <ActivitiesPage />
+              </PrivateRoute>
+            )
+          },
         ],
       },
+      
     ],
   }
 ];

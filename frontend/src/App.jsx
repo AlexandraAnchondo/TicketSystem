@@ -3,6 +3,7 @@ import { Outlet } from 'react-router';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HomeIcon from '@mui/icons-material/Home';
+import ListAltRoundedIcon from '@mui/icons-material/ListAltRounded';
 import logo from './assets/Avatar.png';
 import "./styles/App.css";
 
@@ -39,6 +40,12 @@ export default function App() {
       title: 'Dashboard',
       icon: <DashboardIcon />,
       pattern: 'dashboard',
+    },
+    {
+      segment: 'actividades',
+      title: 'Actividades',
+      icon: <ListAltRoundedIcon />,
+      pattern: 'actividades',
     },
   ];
 

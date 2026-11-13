@@ -1,5 +1,4 @@
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -17,12 +16,15 @@ const getAuthHeaders = () => ({
 
 // Manejo de errores comunes
 const handleApiError = (err) => {
-    const navigate = useNavigate();
     console.error(err);
     if (err.response && err.response.status === 401) {
         localStorage.removeItem("token");
         localStorage.setItem("isLoggedIn", "false");
-        navigate("/login", { replace: true });
+        if (isElectron) {
+            window.location.hash = "/login";
+        } else {
+            window.location.assign("/tickets/login");
+        }
     }
     throw err;
 };
@@ -239,9 +241,21 @@ export const getAreas = async () => {
 /**
  * Obtener actividades activas para crear tickets
  */
-export const getActivities = async () => {
+export const getActivities = async (filters = {}) => {
     try {
-        const response = await api.get('/activities', { headers: getAuthHeaders() });
+        const response = await api.get('/activities', { params: filters, headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Crear una actividad de catálogo
+ */
+export const createActivity = async (activityData) => {
+    try {
+        const response = await api.post('/activities', activityData, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);

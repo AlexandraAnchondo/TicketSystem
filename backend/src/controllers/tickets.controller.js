@@ -66,6 +66,7 @@ exports.getTickets = async (req, res) => {
       endDate,
       priority,
       status,
+      serviceType,
       assignedTo,
       search,
       page = 1,
@@ -99,6 +100,14 @@ exports.getTickets = async (req, res) => {
     if (status && VALID_STATUS.includes(status)) {
       where += ' AND t.status = @status';
       request.input('status', sql.VarChar(20), status);
+    }
+
+    if (serviceType) {
+      if (!VALID_SERVICE_TYPES.includes(serviceType)) {
+        return res.status(400).json({ error: 'Tipo de servicio inválido' });
+      }
+      where += ' AND t.serviceType = @serviceType';
+      request.input('serviceType', sql.NVarChar(30), serviceType);
     }
 
     const assignedToNumber = normalizeNullableNumber(assignedTo);
@@ -259,13 +268,16 @@ exports.createTicket = async (req, res) => {
     const activityResult = await pool.request()
       .input('activityId', sql.Int, activityIdNumber)
       .query(`
-        SELECT name
+        SELECT name, serviceType
         FROM dbo.Activities
         WHERE id = @activityId AND active = 1;
       `);
 
     if (!activityResult.recordset.length) {
       return res.status(400).json({ error: 'La actividad seleccionada no está disponible' });
+    }
+    if (activityResult.recordset[0].serviceType !== serviceType) {
+      return res.status(400).json({ error: 'La actividad no corresponde al tipo de servicio seleccionado' });
     }
 
     const departmentIdNumber = normalizeNullableNumber(departmentId);
@@ -779,19 +791,63 @@ exports.getAreas = async (_req, res) => {
   }
 };
 
-exports.getActivities = async (_req, res) => {
+exports.getActivities = async (req, res) => {
   try {
     const pool = await getConnection();
-    const result = await pool.request().query(`
-      SELECT id, name
+    const { serviceType } = req.query;
+    if (serviceType && !VALID_SERVICE_TYPES.includes(serviceType)) {
+      return res.status(400).json({ error: 'Tipo de servicio inválido' });
+    }
+
+    const request = pool.request();
+    let where = 'WHERE active = 1';
+    if (serviceType) {
+      where += ' AND serviceType = @serviceType';
+      request.input('serviceType', sql.NVarChar(30), serviceType);
+    }
+
+    const result = await request.query(`
+      SELECT id, name, serviceType
       FROM dbo.Activities
-      WHERE active = 1
+      ${where}
       ORDER BY name;
     `);
     res.json(result.recordset);
   } catch (error) {
     console.error('getActivities error:', error);
     res.status(500).json({ error: 'Error al obtener actividades' });
+  }
+};
+
+exports.createActivity = async (req, res) => {
+  try {
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    const { serviceType } = req.body;
+
+    if (!name || name.length > 150) {
+      return res.status(400).json({ error: 'El nombre debe tener entre 1 y 150 caracteres' });
+    }
+    if (!VALID_SERVICE_TYPES.includes(serviceType)) {
+      return res.status(400).json({ error: 'Tipo de servicio inválido' });
+    }
+
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('name', sql.NVarChar(150), name)
+      .input('serviceType', sql.NVarChar(30), serviceType)
+      .query(`
+        INSERT INTO dbo.Activities (name, serviceType)
+        OUTPUT INSERTED.id, INSERTED.name, INSERTED.serviceType
+        VALUES (@name, @serviceType);
+      `);
+
+    res.status(201).json({ message: 'Actividad creada correctamente', activity: result.recordset[0] });
+  } catch (error) {
+    if (error.number === 2601 || error.number === 2627) {
+      return res.status(409).json({ error: 'Ya existe una actividad con ese nombre' });
+    }
+    console.error('createActivity error:', error);
+    res.status(500).json({ error: 'Error al crear la actividad' });
   }
 };
 

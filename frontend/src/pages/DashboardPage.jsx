@@ -20,7 +20,7 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 
-import { getTickets, getTicketStats } from '../data/API';
+import { getTickets, getTicketStats, getUsers } from '../data/API';
 import TicketCard from '../components/TicketCard';
 import TicketModal from '../components/TicketModal';
 import CreateTicketModal from '../components/CreateTicketModal';
@@ -56,6 +56,7 @@ const statConfig = [
 
 const DashboardPage = () => {
   const [tickets, setTickets] = useState([]);
+  const [users, setUsers] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -66,6 +67,8 @@ const DashboardPage = () => {
     timeRange: 'today',
     priority: null,
     status: null,
+    serviceType: null,
+    assignedTo: null,
     search: '',
     sortBy: 'date',
   });
@@ -103,6 +106,8 @@ const DashboardPage = () => {
 
       if (filters.priority) params.priority = filters.priority;
       if (filters.status) params.status = filters.status;
+      if (filters.serviceType) params.serviceType = filters.serviceType;
+      if (filters.assignedTo) params.assignedTo = filters.assignedTo;
 
       const data = await getTickets(params);
       setTickets(Array.isArray(data) ? data : data.data || []);
@@ -126,7 +131,27 @@ const DashboardPage = () => {
   useEffect(() => {
     fetchTickets();
     fetchStats();
-  }, [filters.timeRange, filters.priority, filters.status, filters.search]);
+  }, [
+    filters.timeRange,
+    filters.priority,
+    filters.status,
+    filters.serviceType,
+    filters.assignedTo,
+    filters.search,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+    getUsers()
+      .then((data) => {
+        if (active) setUsers(Array.isArray(data) ? data : data?.data || []);
+      })
+      .catch((err) => console.error('Error al cargar usuarios para filtrar tickets:', err));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const sortedTickets = useMemo(() => {
     const result = [...tickets];
@@ -212,7 +237,7 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
 
-        <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+        <FilterBar filters={filters} onFilterChange={handleFilterChange} users={users} />
 
         <Box component="section" className="tickets-section">
           <Stack

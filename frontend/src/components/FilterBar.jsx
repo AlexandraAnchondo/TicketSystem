@@ -44,7 +44,13 @@ const sortOptions = [
   { value: 'status', label: 'Por estado' },
 ];
 
-const FilterBar = ({ filters, onFilterChange }) => {
+const serviceTypeOptions = [
+  { value: '', label: 'Todos' },
+  { value: 'Sistemas', label: 'Sistemas' },
+  { value: 'Soporte Técnico', label: 'Soporte Técnico' },
+];
+
+const FilterBar = ({ filters, onFilterChange, users = [] }) => {
   return (
     <Card className="filter-bar" elevation={0}>
       <CardContent>
@@ -111,6 +117,37 @@ const FilterBar = ({ filters, onFilterChange }) => {
               {statusOptions.map((option) => (
                 <MenuItem key={option.value || 'all'} value={option.value}>
                   {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Tipo de servicio</InputLabel>
+            <Select
+              label="Tipo de servicio"
+              value={filters.serviceType || ''}
+              onChange={(e) => onFilterChange({ serviceType: e.target.value || null })}
+            >
+              {serviceTypeOptions.map((option) => (
+                <MenuItem key={option.value || 'all'} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl fullWidth size="small">
+            <InputLabel>Asignado a</InputLabel>
+            <Select
+              label="Asignado a"
+              value={filters.assignedTo || ''}
+              onChange={(e) => onFilterChange({ assignedTo: e.target.value || null })}
+            >
+              <MenuItem value="">Todas las personas</MenuItem>
+              {users.map((user) => (
+                <MenuItem key={user.id} value={user.id}>
+                  {user.nombre}
                 </MenuItem>
               ))}
             </Select>

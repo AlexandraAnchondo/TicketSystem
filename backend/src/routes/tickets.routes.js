@@ -20,6 +20,7 @@ router.post('/add-ticket/:id/comments', verificarToken, ticketsController.addTic
 
 router.get('/areas', verificarToken, ticketsController.getAreas);
 router.get('/activities', verificarToken, ticketsController.getActivities);
+router.post('/activities', verificarToken, ticketsController.createActivity);
 router.get('/users', verificarToken, ticketsController.getUsers);
 
 module.exports = router;
