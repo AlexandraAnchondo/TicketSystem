@@ -314,7 +314,7 @@ app.post('/login', async (req, res) => {
 });
 
 const port = process.env.PORT || 3008;
-const host = process.env.HOST || 'localhost';
+const host = process.env.HOST || '0.0.0.0';
 
 app.listen(port, host, () => {
     console.log(`API corriendo en http://${host}:${port}`);

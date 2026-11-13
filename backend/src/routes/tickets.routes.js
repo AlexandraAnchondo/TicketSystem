@@ -3,20 +3,20 @@ const router = express.Router();
 const ticketsController = require('../controllers/tickets.controller');
 const verificarToken = require('../middlewares/verificarToken');
 
-router.get('/tickets/stats', verificarToken, ticketsController.getTicketStats);
-router.get('/tickets/grouped/by-day', verificarToken, ticketsController.getTicketsByDay);
-router.get('/tickets/grouped/by-hour', verificarToken, ticketsController.getTicketsByHour);
-router.get('/tickets/grouped/by-week', verificarToken, ticketsController.getWeekTickets);
-router.get('/tickets/grouped/by-month', verificarToken, ticketsController.getMonthTickets);
+router.get('/get-ticket/stats', verificarToken, ticketsController.getTicketStats);
+router.get('/get-tickets/grouped/by-day', verificarToken, ticketsController.getTicketsByDay);
+router.get('/get-tickets/grouped/by-hour', verificarToken, ticketsController.getTicketsByHour);
+router.get('/get-tickets/grouped/by-week', verificarToken, ticketsController.getWeekTickets);
+router.get('/get-tickets/grouped/by-month', verificarToken, ticketsController.getMonthTickets);
 
-router.get('/tickets', verificarToken, ticketsController.getTickets);
-router.get('/tickets/:id', verificarToken, ticketsController.getTicketById);
-router.post('/tickets', verificarToken, ticketsController.createTicket);
-router.put('/tickets/:id', verificarToken, ticketsController.updateTicket);
-router.delete('/tickets/:id', verificarToken, ticketsController.deleteTicket);
-router.patch('/tickets/:id/status', verificarToken, ticketsController.updateTicketStatus);
-router.patch('/tickets/:id/assign', verificarToken, ticketsController.assignTicket);
-router.post('/tickets/:id/comments', verificarToken, ticketsController.addTicketComment);
+router.get('/get-tickets', verificarToken, ticketsController.getTickets);
+router.get('/get-ticket/:id', verificarToken, ticketsController.getTicketById);
+router.post('/create-ticket', verificarToken, ticketsController.createTicket);
+router.put('/update-ticket/:id', verificarToken, ticketsController.updateTicket);
+router.delete('/delete-ticket/:id', verificarToken, ticketsController.deleteTicket);
+router.patch('/update-ticket/:id/status', verificarToken, ticketsController.updateTicketStatus);
+router.patch('/assign-ticket/:id/assign', verificarToken, ticketsController.assignTicket);
+router.post('/add-ticket/:id/comments', verificarToken, ticketsController.addTicketComment);
 
 router.get('/areas', verificarToken, ticketsController.getAreas);
 router.get('/activities', verificarToken, ticketsController.getActivities);

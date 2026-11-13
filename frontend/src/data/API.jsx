@@ -64,7 +64,7 @@ export const cambiarPassword = async (userId, nueva) => {
  */
 export const getTickets = async (filters = {}) => {
     try {
-        const response = await api.get('/tickets', { params: filters, headers: getAuthHeaders() });
+        const response = await api.get('/get-tickets', { params: filters, headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -76,7 +76,7 @@ export const getTickets = async (filters = {}) => {
  */
 export const getTicketById = async (ticketId) => {
     try {
-        const response = await api.get(`/tickets/${ticketId}`, { headers: getAuthHeaders() });
+        const response = await api.get(`/get-ticket/${ticketId}`, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -88,7 +88,7 @@ export const getTicketById = async (ticketId) => {
  */
 export const createTicket = async (ticketData) => {
     try {
-        const response = await api.post('/tickets', ticketData, { headers: getAuthHeaders() });
+        const response = await api.post('/create-ticket', ticketData, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -101,7 +101,7 @@ export const createTicket = async (ticketData) => {
 export const updateTicket = async (ticketId, ticketData) => {
     try {
         const author = localStorage.getItem("usuario");
-        const response = await api.put(`/tickets/${ticketId}`, { ...ticketData, author }, { headers: getAuthHeaders() });
+        const response = await api.put(`/update-ticket/${ticketId}`, { ...ticketData, author }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -113,7 +113,7 @@ export const updateTicket = async (ticketId, ticketData) => {
  */
 export const deleteTicket = async (ticketId) => {
     try {
-        const response = await api.delete(`/tickets/${ticketId}`, { headers: getAuthHeaders() });
+        const response = await api.delete(`/delete-ticket/${ticketId}`, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -126,7 +126,7 @@ export const deleteTicket = async (ticketId) => {
 export const updateTicketStatus = async (ticketId, status) => {
     try {
         const author = localStorage.getItem("usuario");
-        const response = await api.patch(`/tickets/${ticketId}/status`, { status, author }, { headers: getAuthHeaders() });
+        const response = await api.patch(`/update-ticket/${ticketId}/status`, { status, author }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -139,7 +139,7 @@ export const updateTicketStatus = async (ticketId, status) => {
 export const assignTicket = async (ticketId, userId) => {
     try {
         const author = localStorage.getItem("usuario");
-        const response = await api.patch(`/tickets/${ticketId}/assign`, { userId, author }, { headers: getAuthHeaders() });
+        const response = await api.patch(`/assign-ticket/${ticketId}/assign`, { userId, author }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -152,7 +152,7 @@ export const assignTicket = async (ticketId, userId) => {
 export const addTicketComment = async (ticketId, comment) => {
     try {
         const author = localStorage.getItem("usuario");
-        const response = await api.post(`/tickets/${ticketId}/comments`, { comment, author }, { headers: getAuthHeaders() });
+        const response = await api.post(`/add-ticket/${ticketId}/comments`, { comment, author }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -164,7 +164,7 @@ export const addTicketComment = async (ticketId, comment) => {
  */
 export const getTicketStats = async (filters = {}) => {
     try {
-        const response = await api.get('/tickets/stats', { params: filters, headers: getAuthHeaders() });
+        const response = await api.get('/get-ticket/stats', { params: filters, headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -176,7 +176,7 @@ export const getTicketStats = async (filters = {}) => {
  */
 export const getTicketsByDay = async (date) => {
     try {
-        const response = await api.get(`/tickets/grouped/by-day?date=${date}`, { headers: getAuthHeaders() });
+        const response = await api.get(`/get-tickets/grouped/by-day?date=${date}`, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -188,7 +188,7 @@ export const getTicketsByDay = async (date) => {
  */
 export const getTicketsByHour = async (date) => {
     try {
-        const response = await api.get(`/tickets/grouped/by-hour?date=${date}`, { headers: getAuthHeaders() });
+        const response = await api.get(`/get-tickets/grouped/by-hour?date=${date}`, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -200,7 +200,7 @@ export const getTicketsByHour = async (date) => {
  */
 export const getWeekTickets = async (startDate, endDate) => {
     try {
-        const response = await api.get('/tickets/grouped/by-week', {
+        const response = await api.get('/get-tickets/grouped/by-week', {
             params: { startDate, endDate },
             headers: getAuthHeaders()
         });
@@ -215,7 +215,7 @@ export const getWeekTickets = async (startDate, endDate) => {
  */
 export const getMonthTickets = async (year, month) => {
     try {
-        const response = await api.get(`/tickets/grouped/by-month?year=${year}&month=${month}`, { headers: getAuthHeaders() });
+        const response = await api.get(`/get-tickets/grouped/by-month?year=${year}&month=${month}`, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
