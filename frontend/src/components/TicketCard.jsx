@@ -31,14 +31,20 @@ const statusMeta = {
   on_hold: { label: 'En espera', color: 'default' },
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return 'Sin fecha';
+const formatearFecha = (fechaHora) => {
+  if (!fechaHora) return "";
 
-  return new Date(dateString).toLocaleDateString('es-MX', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  const fecha = new Date(
+    fechaHora.replace("Z", "")
+  );
+
+  return fecha.toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
   });
 };
 
@@ -138,7 +144,7 @@ const TicketCard = ({ ticket, onClick }) => {
             <Stack direction="row" alignItems="center" spacing={0.8} color="text.secondary">
               <CalendarMonthRoundedIcon fontSize="small" />
               <Typography variant="caption" fontWeight={700}>
-                {formatDate(ticket.createdAt)}
+                {formatearFecha(ticket.createdAt)}
               </Typography>
             </Stack>
 
