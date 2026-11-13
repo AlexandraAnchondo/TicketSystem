@@ -95,6 +95,13 @@
   margin-top: 24px;
 }
 
+.tickets-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  align-items: stretch;
+  gap: 20px;
+}
+
 .state-card {
   min-height: 220px;
   border-radius: 26px !important;

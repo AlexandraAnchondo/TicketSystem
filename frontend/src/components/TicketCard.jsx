@@ -99,12 +99,17 @@ const TicketCard = ({ ticket, onClick }) => {
           </Typography>
 
           <Tooltip title={ticket.subject || ''} placement="top">
-            <Typography variant="h6" className="ticket-subject">
+            <Typography variant="h6" className="ticket-subject" title={ticket.subject || 'Sin asunto'}>
               {ticket.subject || 'Sin asunto'}
             </Typography>
           </Tooltip>
 
-          <Typography variant="body2" color="text.secondary" className="ticket-description">
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            className="ticket-description"
+            title={ticket.description || 'Sin descripción capturada.'}
+          >
             {ticket.description || 'Sin descripción capturada.'}
           </Typography>
 

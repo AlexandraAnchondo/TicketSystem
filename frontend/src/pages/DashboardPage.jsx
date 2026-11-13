@@ -10,8 +10,9 @@ import {
   Container,
   Grid,
   Stack,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
-  alpha,
 } from '@mui/material';
 import ConfirmationNumberRoundedIcon from '@mui/icons-material/ConfirmationNumberRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
@@ -19,9 +20,12 @@ import HourglassTopRoundedIcon from '@mui/icons-material/HourglassTopRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import ViewModuleRoundedIcon from '@mui/icons-material/ViewModuleRounded';
+import TableRowsRoundedIcon from '@mui/icons-material/TableRowsRounded';
 
 import { getTickets, getTicketStats, getUsers } from '../data/API';
 import TicketCard from '../components/TicketCard';
+import DataTable from '../components/DataGrid';
 import TicketModal from '../components/TicketModal';
 import CreateTicketModal from '../components/CreateTicketModal';
 import FilterBar from '../components/FilterBar';
@@ -62,6 +66,7 @@ const DashboardPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('cards');
 
   const [filters, setFilters] = useState({
     timeRange: 'today',
@@ -181,6 +186,54 @@ const DashboardPage = () => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
+  const ticketColumns = [
+    {
+      field: 'ticketRef',
+      headerName: 'Ticket',
+      width: 100,
+      valueGetter: (_value, row) => `#${row.id}`,
+    },
+    { field: 'subject', headerName: 'Actividad', minWidth: 350, flex: 1 },
+    { field: 'attendedPerson', headerName: 'Persona atendida', minWidth: 160 },
+    { field: 'area', headerName: 'Área', minWidth: 350 },
+    {
+      field: 'status',
+      headerName: 'Estado',
+      minWidth: 130,
+      valueGetter: (_value, row) => ({
+        open: 'Abierto',
+        in_progress: 'En progreso',
+        closed: 'Cerrado',
+        on_hold: 'En espera',
+      }[row.status] || row.status || 'Sin estado'),
+    },
+    {
+      field: 'priority',
+      headerName: 'Urgencia',
+      minWidth: 110,
+      valueGetter: (_value, row) => ({
+        critical: 'Crítica',
+        high: 'Alta',
+        medium: 'Media',
+        low: 'Baja',
+      }[row.priority] || row.priority || 'Sin urgencia'),
+    },
+    {
+      field: 'createdAt',
+      headerName: 'Fecha',
+      minWidth: 270,
+      valueFormatter: (value) => value
+        ? new Date(value).toLocaleString('es-MX', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        : 'Sin fecha',
+    },
+  ];
+
   return (
     <Box className="dashboard-page">
       <Container maxWidth="xl" className="dashboard-container">
@@ -256,7 +309,26 @@ const DashboardPage = () => {
               </Typography>
             </Box>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={viewMode}
+                onChange={(_event, value) => {
+                  if (value) setViewMode(value);
+                }}
+                aria-label="Vista de tickets"
+              >
+                <ToggleButton value="cards" aria-label="Ver tickets como tarjetas">
+                  <ViewModuleRoundedIcon fontSize="small" sx={{ mr: 0.75 }} />
+                  Cards
+                </ToggleButton>
+                <ToggleButton value="table" aria-label="Ver tickets como tabla">
+                  <TableRowsRoundedIcon fontSize="small" sx={{ mr: 0.75 }} />
+                  Tabla
+                </ToggleButton>
+              </ToggleButtonGroup>
+
               <Button
                 startIcon={<AddRoundedIcon />}
                 onClick={() => setShowCreateModal(true)}
@@ -306,14 +378,21 @@ const DashboardPage = () => {
                 No hay tickets que coincidan con los filtros seleccionados.
               </Typography>
             </Card>
+          ) : viewMode === 'table' ? (
+            <DataTable
+              rows={sortedTickets}
+              columns={ticketColumns}
+              sortingMode="desc"
+              onRowClick={(params) => handleTicketClick(params.row)}
+            />
           ) : (
-            <Grid container spacing={2.5}>
+            <Box className="tickets-cards-grid">
               {sortedTickets.map((ticket) => (
-                <Grid item xs={12} sm={6} lg={4} xl={3} key={ticket.id}>
+                <Box key={ticket.id} sx={{ minWidth: 0 }}>
                   <TicketCard ticket={ticket} onClick={() => handleTicketClick(ticket)} />
-                </Grid>
+                </Box>
               ))}
-            </Grid>
+            </Box>
           )}
         </Box>
       </Container>

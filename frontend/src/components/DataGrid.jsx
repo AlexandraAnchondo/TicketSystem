@@ -8,7 +8,14 @@ import Box from "@mui/material/Box"
 
 const paginationModel = { page: 0, pageSize: 5 }
 
-export default function DataTable({ rows, columns, checkboxSelection = false, handleRowSelection, sortingMode = "asc" }) {
+export default function DataTable({
+    rows,
+    columns,
+    checkboxSelection = false,
+    handleRowSelection,
+    onRowClick,
+    sortingMode = "asc"
+}) {
     const StyledGridOverlay = styled("div")(({ theme }) => ({
         display: "flex",
         flexDirection: "column",
@@ -68,6 +75,7 @@ export default function DataTable({ rows, columns, checkboxSelection = false, ha
                 <DataGrid
                     rows={rows}
                     columns={columns}
+                    autoHeight
                     showToolbar={true}
                     localeText={esES.components.MuiDataGrid.defaultProps.localeText}
                     initialState={{
@@ -90,6 +98,7 @@ export default function DataTable({ rows, columns, checkboxSelection = false, ha
                         noRowsOverlay: CustomNoRowsOverlay,
                     }}
                     disableRowSelectionOnClick={true}
+                    onRowClick={onRowClick}
                     sx={{
                         border: 0
                     }}
