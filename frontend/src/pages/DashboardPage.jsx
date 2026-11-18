@@ -242,12 +242,13 @@ const DashboardPage = () => {
       headerName: 'Fecha',
       minWidth: 270,
       valueFormatter: (value) => value
-        ? new Date(value).toLocaleString('es-MX', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
+        ? new Date(value).toLocaleString("es-MX", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true
         })
         : 'Sin fecha',
     },

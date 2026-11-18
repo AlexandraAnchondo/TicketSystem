@@ -68,15 +68,19 @@ const statusLabels = statusOptions.reduce((acc, option) => {
 }, {});
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'Sin fecha';
+  if (!dateString) return "";
 
-  return new Date(dateString).toLocaleDateString('es-MX', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+  const fecha = new Date(
+    dateString.replace("Z", "")
+  );
+
+  return fecha.toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
   });
 };
 
