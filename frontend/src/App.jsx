@@ -42,8 +42,8 @@ export default function App() {
       pattern: 'dashboard',
     },
     {
-      segment: 'actividades',
-      title: 'Actividades',
+      segment: 'catalogo-actividades',
+      title: 'Catálogos',
       icon: <ListAltRoundedIcon />,
       pattern: 'actividades',
     },

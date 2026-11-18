@@ -54,7 +54,7 @@ const routes = [
             )
           },
           {
-            path: "actividades",
+            path: "catalogo-actividades",
             element: (
               <PrivateRoute>
                 <ActivitiesPage />
