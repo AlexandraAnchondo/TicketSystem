@@ -50,7 +50,7 @@ const serviceTypeOptions = [
   { value: 'Soporte Técnico', label: 'Soporte Técnico' },
 ];
 
-const FilterBar = ({ filters, onFilterChange, users = [] }) => {
+const FilterBar = ({ filters, onFilterChange, users = [], isAdmin = false }) => {
   return (
     <Card className="filter-bar" elevation={0}>
       <CardContent>
@@ -59,7 +59,7 @@ const FilterBar = ({ filters, onFilterChange, users = [] }) => {
           <Box component="span">Filtros de búsqueda</Box>
         </Stack>
 
-        <Box className="filter-grid">
+        <Box className={`filter-grid${isAdmin ? ' filter-grid-admin' : ''}`}>
           <TextField
             fullWidth
             label="Buscar ticket"
@@ -122,20 +122,22 @@ const FilterBar = ({ filters, onFilterChange, users = [] }) => {
             </Select>
           </FormControl>
 
-          <FormControl fullWidth size="small">
-            <InputLabel>Tipo de servicio</InputLabel>
-            <Select
-              label="Tipo de servicio"
-              value={filters.serviceType || ''}
-              onChange={(e) => onFilterChange({ serviceType: e.target.value || null })}
-            >
-              {serviceTypeOptions.map((option) => (
-                <MenuItem key={option.value || 'all'} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          {isAdmin && (
+            <FormControl fullWidth size="small">
+              <InputLabel>Tipo de servicio</InputLabel>
+              <Select
+                label="Tipo de servicio"
+                value={filters.serviceType || ''}
+                onChange={(e) => onFilterChange({ serviceType: e.target.value || null })}
+              >
+                {serviceTypeOptions.map((option) => (
+                  <MenuItem key={option.value || 'all'} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           <FormControl fullWidth size="small">
             <InputLabel>Asignado a</InputLabel>

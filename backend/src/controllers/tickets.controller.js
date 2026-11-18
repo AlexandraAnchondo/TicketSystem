@@ -30,6 +30,71 @@ const getUserName = (user) => {
   return user?.nombre || user?.NombreUsuario || user?.usuario || user?.Usuario || 'Usuario';
 };
 
+const getUserContext = async (pool, authenticatedUser) => {
+  const userId = getUserId(authenticatedUser);
+  if (!userId) return null;
+
+  const result = await pool.request()
+    .input('userId', sql.Int, userId)
+    .query(`
+      SELECT
+        u.IdUsuario AS id,
+        u.IdPerfil AS idPerfil,
+        u.id_departamento_area AS departmentAreaId,
+        da.departamento_area AS serviceType,
+        LTRIM(RTRIM(CONCAT(
+          u.Nombre, N' ',
+          u.ApellidoPaterno, N' ',
+          COALESCE(u.ApellidoMaterno, N'')
+        ))) AS fullName
+      FROM dbo.Cat_Usuario u
+      LEFT JOIN dbo.Cat_DepartamentoArea da
+        ON da.id_departamento_area = u.id_departamento_area
+      WHERE u.IdUsuario = @userId;
+    `);
+
+  if (!result.recordset.length) return null;
+
+  const user = result.recordset[0];
+  return { ...user, isAdmin: user.idPerfil === 1 };
+};
+
+const getDepartmentVisibility = (request, user, ticketAlias = 't') => {
+  request
+    .input('currentUserId', sql.Int, user.id)
+    .input('currentDepartmentAreaId', sql.Int, user.departmentAreaId)
+    .input('isAdmin', sql.Bit, user.isAdmin);
+
+  return `(@isAdmin = 1 OR EXISTS (
+    SELECT 1
+    FROM dbo.Cat_DepartamentoArea da
+    WHERE da.id_departamento_area = @currentDepartmentAreaId
+      AND da.departamento_area = ${ticketAlias}.serviceType
+  ))`;
+};
+
+const getTicketAccess = async (pool, ticketId, user) => {
+  const result = await pool.request()
+    .input('ticketId', sql.Int, ticketId)
+    .query(`
+      SELECT id, serviceType, createdBy
+      FROM dbo.Tickets
+      WHERE id = @ticketId;
+    `);
+
+  const ticket = result.recordset[0];
+  if (!ticket) return null;
+
+  if (
+    !user.isAdmin
+    && (!user.serviceType || ticket.serviceType !== user.serviceType)
+  ) {
+    return null;
+  }
+
+  return ticket;
+};
+
 const normalizeNullableNumber = (value) => {
   if (value === undefined || value === null || value === '') return null;
   const parsed = Number(value);
@@ -40,6 +105,7 @@ const mapTicketRow = (row) => ({
   id: row.id,
   subject: row.subject,
   description: row.description,
+  canViewDescription: row.canViewDescription,
   attendedPerson: row.attendedPerson,
   areaId: row.areaId,
   departmentId: row.departmentId,
@@ -61,6 +127,8 @@ const mapTicketRow = (row) => ({
 exports.getTickets = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const {
       startDate,
       endDate,
@@ -81,6 +149,8 @@ exports.getTickets = async (req, res) => {
     const request = pool.request()
       .input('offset', sql.Int, offset)
       .input('limit', sql.Int, safeLimit);
+    const departmentVisibility = getDepartmentVisibility(request, user);
+    where += ` AND ${departmentVisibility}`;
 
     if (startDate) {
       where += ' AND CAST(t.createdAt AS DATE) >= @startDate';
@@ -119,7 +189,10 @@ exports.getTickets = async (req, res) => {
     if (search && String(search).trim()) {
       where += ` AND (
         t.subject LIKE @search OR
-        t.description LIKE @search OR
+        (
+          (t.serviceType <> N'Sistemas' OR t.createdBy = @currentUserId OR @isAdmin = 1)
+          AND t.description LIKE @search
+        ) OR
         t.attendedPerson LIKE @search OR
         COALESCE(t.departmentName, a.nombre) LIKE @search
       )`;
@@ -130,7 +203,18 @@ exports.getTickets = async (req, res) => {
       SELECT
         t.id,
         t.subject,
-        t.description,
+        CASE
+          WHEN t.serviceType = N'Sistemas'
+            AND ISNULL(t.createdBy, 0) <> @currentUserId
+            AND @isAdmin = 0 THEN NULL
+          ELSE t.description
+        END AS description,
+        CASE
+          WHEN t.serviceType = N'Sistemas'
+            AND ISNULL(t.createdBy, 0) <> @currentUserId
+            AND @isAdmin = 0 THEN 0
+          ELSE 1
+        END AS canViewDescription,
         t.attendedPerson,
         t.areaId,
         t.departmentId,
@@ -141,9 +225,9 @@ exports.getTickets = async (req, res) => {
         t.difficulty,
         t.status,
         t.assignedTo,
-        au.NombreUsuario AS assignedToName,
+        LTRIM(RTRIM(CONCAT(au.Nombre, N' ', au.ApellidoPaterno, N' ', COALESCE(au.ApellidoMaterno, N'')))) AS assignedToName,
         t.createdBy,
-        cu.NombreUsuario AS createdByName,
+        LTRIM(RTRIM(CONCAT(cu.Nombre, N' ', cu.ApellidoPaterno, N' ', COALESCE(cu.ApellidoMaterno, N'')))) AS createdByName,
         t.closedAt,
         t.createdAt,
         t.updatedAt,
@@ -179,14 +263,27 @@ exports.getTicketById = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
 
-    const ticketResult = await pool.request()
-      .input('id', sql.Int, ticketId)
-      .query(`
+    const ticketRequest = pool.request().input('id', sql.Int, ticketId);
+    const departmentVisibility = getDepartmentVisibility(ticketRequest, user);
+    const ticketResult = await ticketRequest.query(`
         SELECT
           t.id,
           t.subject,
-          t.description,
+          CASE
+            WHEN t.serviceType = N'Sistemas'
+              AND ISNULL(t.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN NULL
+            ELSE t.description
+          END AS description,
+          CASE
+            WHEN t.serviceType = N'Sistemas'
+              AND ISNULL(t.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN 0
+            ELSE 1
+          END AS canViewDescription,
           t.attendedPerson,
           t.areaId,
           t.departmentId,
@@ -197,9 +294,9 @@ exports.getTicketById = async (req, res) => {
           t.difficulty,
           t.status,
           t.assignedTo,
-          au.NombreUsuario AS assignedToName,
+          LTRIM(RTRIM(CONCAT(au.Nombre, N' ', au.ApellidoPaterno, N' ', COALESCE(au.ApellidoMaterno, N'')))) AS assignedToName,
           t.createdBy,
-          cu.NombreUsuario AS createdByName,
+          LTRIM(RTRIM(CONCAT(cu.Nombre, N' ', cu.ApellidoPaterno, N' ', COALESCE(cu.ApellidoMaterno, N'')))) AS createdByName,
           t.closedAt,
           t.createdAt,
           t.updatedAt
@@ -207,7 +304,8 @@ exports.getTicketById = async (req, res) => {
         LEFT JOIN Areas a ON a.id = t.areaId
         LEFT JOIN Cat_Usuario au ON au.IdUsuario = t.assignedTo
         LEFT JOIN Cat_Usuario cu ON cu.IdUsuario = t.createdBy
-        WHERE t.id = @id;
+        WHERE t.id = @id
+          AND ${departmentVisibility};
       `);
 
     if (!ticketResult.recordset.length) {
@@ -241,12 +339,14 @@ exports.getTicketById = async (req, res) => {
 exports.createTicket = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const {
       activityId,
       description,
       attendedPerson,
       departmentId,
-      serviceType,
+      serviceType: requestedServiceType,
       priority = 'medium',
       difficulty = 'medium',
       status = 'open',
@@ -255,6 +355,11 @@ exports.createTicket = async (req, res) => {
     const activityIdNumber = normalizeNullableNumber(activityId);
     if (!Number.isSafeInteger(activityIdNumber) || activityIdNumber <= 0) {
       return res.status(400).json({ error: 'Selecciona una actividad válida' });
+    }
+
+    const serviceType = user.isAdmin ? requestedServiceType : user.serviceType;
+    if (!user.isAdmin && !serviceType) {
+      return res.status(409).json({ error: 'Un administrador debe asignarte un tipo de servicio antes de crear tickets' });
     }
 
     if (!VALID_SERVICE_TYPES.includes(serviceType)) {
@@ -312,10 +417,7 @@ exports.createTicket = async (req, res) => {
       return res.status(400).json({ error: 'Estado inválido' });
     }
 
-    const createdBy = getUserId(req.user);
-    if (!createdBy) {
-      return res.status(401).json({ error: 'No fue posible identificar al usuario autenticado' });
-    }
+    const createdBy = user.id;
     const result = await pool.request()
       .input('subject', sql.NVarChar(200), activityResult.recordset[0].name)
       .input('description', sql.NVarChar(sql.MAX), description || null)
@@ -385,6 +487,10 @@ exports.updateTicket = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const accessibleTicket = await getTicketAccess(pool, ticketId, user);
+    if (!accessibleTicket) return res.status(404).json({ error: 'Ticket no encontrado' });
     const {
       subject,
       description,
@@ -393,11 +499,8 @@ exports.updateTicket = async (req, res) => {
       priority,
       difficulty,
       status,
-      assignedTo,
-      author
+      assignedTo
     } = req.body;
-
-    const user = JSON.parse(author);
 
     if (priority && !VALID_PRIORITY.includes(priority)) {
       return res.status(400).json({ error: 'Prioridad inválida' });
@@ -419,9 +522,19 @@ exports.updateTicket = async (req, res) => {
 
     const oldTicket = current.recordset[0];
     const nextStatus = status ?? oldTicket.status;
+    if (
+      description !== undefined
+      && oldTicket.serviceType === 'Sistemas'
+      && !user.isAdmin
+      && oldTicket.createdBy !== user.id
+    ) {
+      return res.status(403).json({ error: 'Solo quien creó el ticket o Admin puede modificar su descripción' });
+    }
 
     const result = await pool.request()
       .input('id', sql.Int, ticketId)
+      .input('currentUserId', sql.Int, user.id)
+      .input('isAdmin', sql.Bit, user.isAdmin)
       .input('subject', sql.NVarChar(200), subject ?? oldTicket.subject)
       .input('description', sql.NVarChar(sql.MAX), description ?? oldTicket.description)
       .input('attendedPerson', sql.NVarChar(150), attendedPerson ?? oldTicket.attendedPerson)
@@ -447,7 +560,24 @@ exports.updateTicket = async (req, res) => {
             ELSE closedAt
           END,
           updatedAt = SYSDATETIME()
-        OUTPUT INSERTED.*
+        OUTPUT
+          INSERTED.id,
+          INSERTED.subject,
+          CASE
+            WHEN INSERTED.serviceType = N'Sistemas'
+              AND ISNULL(INSERTED.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN NULL
+            ELSE INSERTED.description
+          END AS description,
+          CASE
+            WHEN INSERTED.serviceType = N'Sistemas'
+              AND ISNULL(INSERTED.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN 0
+            ELSE 1
+          END AS canViewDescription,
+          INSERTED.status,
+          INSERTED.serviceType,
+          INSERTED.updatedAt
         WHERE id = @id;
       `);
 
@@ -456,7 +586,7 @@ exports.updateTicket = async (req, res) => {
         .input('ticketId', sql.Int, ticketId)
         .input('oldStatus', sql.VarChar(20), oldTicket.status)
         .input('newStatus', sql.VarChar(20), status)
-        .input('changedBy', sql.Int, getUserId(user))
+        .input('changedBy', sql.Int, user.id)
         .query(`
           INSERT INTO TicketStatusHistory (ticketId, oldStatus, newStatus, changedBy)
           VALUES (@ticketId, @oldStatus, @newStatus, @changedBy);
@@ -474,6 +604,10 @@ exports.deleteTicket = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const accessibleTicket = await getTicketAccess(pool, ticketId, user);
+    if (!accessibleTicket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
     const result = await pool.request()
       .input('id', sql.Int, ticketId)
@@ -494,9 +628,11 @@ exports.updateTicketStatus = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
-    const { status, author } = req.body;
-
-    const user = JSON.parse(author);
+    const { status } = req.body;
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const accessibleTicket = await getTicketAccess(pool, ticketId, user);
+    if (!accessibleTicket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
     if (!VALID_STATUS.includes(status)) {
       return res.status(400).json({ error: 'Estado inválido' });
@@ -515,6 +651,8 @@ exports.updateTicketStatus = async (req, res) => {
     const result = await pool.request()
       .input('id', sql.Int, ticketId)
       .input('status', sql.VarChar(20), status)
+      .input('currentUserId', sql.Int, user.id)
+      .input('isAdmin', sql.Bit, user.isAdmin)
       .query(`
         UPDATE Tickets
         SET
@@ -525,7 +663,21 @@ exports.updateTicketStatus = async (req, res) => {
             ELSE closedAt
           END,
           updatedAt = SYSDATETIME()
-        OUTPUT INSERTED.*
+        OUTPUT
+          INSERTED.id,
+          INSERTED.status,
+          CASE
+            WHEN INSERTED.serviceType = N'Sistemas'
+              AND ISNULL(INSERTED.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN NULL
+            ELSE INSERTED.description
+          END AS description,
+          CASE
+            WHEN INSERTED.serviceType = N'Sistemas'
+              AND ISNULL(INSERTED.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN 0
+            ELSE 1
+          END AS canViewDescription
         WHERE id = @id;
       `);
 
@@ -534,7 +686,7 @@ exports.updateTicketStatus = async (req, res) => {
         .input('ticketId', sql.Int, ticketId)
         .input('oldStatus', sql.VarChar(20), oldStatus)
         .input('newStatus', sql.VarChar(20), status)
-        .input('changedBy', sql.Int, getUserId(user))
+        .input('changedBy', sql.Int, user.id)
         .query(`
           INSERT INTO TicketStatusHistory (ticketId, oldStatus, newStatus, changedBy)
           VALUES (@ticketId, @oldStatus, @newStatus, @changedBy);
@@ -552,17 +704,40 @@ exports.assignTicket = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
-    const { userId, author } = req.body;
-    const user = JSON.parse(author);
-    const assignedTo = normalizeNullableNumber(user.IdUsuario);
+    const { userId } = req.body;
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const accessibleTicket = await getTicketAccess(pool, ticketId, user);
+    if (!accessibleTicket) return res.status(404).json({ error: 'Ticket no encontrado' });
+    const assignedTo = normalizeNullableNumber(userId);
+
+    if (assignedTo !== null && (!Number.isSafeInteger(assignedTo) || assignedTo <= 0)) {
+      return res.status(400).json({ error: 'Usuario asignado inválido' });
+    }
 
     const result = await pool.request()
       .input('id', sql.Int, ticketId)
       .input('assignedTo', sql.Int, assignedTo)
+      .input('currentUserId', sql.Int, user.id)
+      .input('isAdmin', sql.Bit, user.isAdmin)
       .query(`
         UPDATE Tickets
         SET assignedTo = @assignedTo, updatedAt = SYSDATETIME()
-        OUTPUT INSERTED.*
+        OUTPUT
+          INSERTED.id,
+          INSERTED.assignedTo,
+          CASE
+            WHEN INSERTED.serviceType = N'Sistemas'
+              AND ISNULL(INSERTED.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN NULL
+            ELSE INSERTED.description
+          END AS description,
+          CASE
+            WHEN INSERTED.serviceType = N'Sistemas'
+              AND ISNULL(INSERTED.createdBy, 0) <> @currentUserId
+              AND @isAdmin = 0 THEN 0
+            ELSE 1
+          END AS canViewDescription
         WHERE id = @id;
       `);
 
@@ -581,27 +756,21 @@ exports.addTicketComment = async (req, res) => {
   try {
     const pool = await getConnection();
     const ticketId = Number(req.params.id);
-    const { comment, author } = req.body;
-
-    const user = JSON.parse(author);
+    const { comment } = req.body;
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const accessibleTicket = await getTicketAccess(pool, ticketId, user);
+    if (!accessibleTicket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
     if (!comment || !String(comment).trim()) {
       return res.status(400).json({ error: 'El comentario es obligatorio' });
     }
 
-    const ticketExists = await pool.request()
-      .input('ticketId', sql.Int, ticketId)
-      .query('SELECT id FROM Tickets WHERE id = @ticketId');
-
-    if (!ticketExists.recordset.length) {
-      return res.status(404).json({ error: 'Ticket no encontrado' });
-    }
-
     const result = await pool.request()
       .input('ticketId', sql.Int, ticketId)
       .input('comment', sql.NVarChar(sql.MAX), String(comment).trim())
-      .input('authorId', sql.Int, getUserId(user))
-      .input('authorName', sql.NVarChar(150), getUserName(user))
+      .input('authorId', sql.Int, user.id)
+      .input('authorName', sql.NVarChar(150), user.fullName || getUserName(req.user))
       .query(`
         INSERT INTO TicketComments (ticketId, comment, authorId, authorName)
         OUTPUT
@@ -624,36 +793,87 @@ exports.addTicketComment = async (req, res) => {
   }
 };
 
+exports.updateTicketComment = async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const ticketId = Number(req.params.ticketId);
+    const commentId = Number(req.params.commentId);
+    const comment = typeof req.body.comment === 'string' ? req.body.comment.trim() : '';
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const accessibleTicket = await getTicketAccess(pool, ticketId, user);
+    if (!accessibleTicket) return res.status(404).json({ error: 'Ticket no encontrado' });
+    if (!Number.isSafeInteger(commentId) || commentId <= 0) {
+      return res.status(400).json({ error: 'Comentario inválido' });
+    }
+    if (!comment) {
+      return res.status(400).json({ error: 'El comentario es obligatorio' });
+    }
+
+    const result = await pool.request()
+      .input('ticketId', sql.Int, ticketId)
+      .input('commentId', sql.Int, commentId)
+      .input('comment', sql.NVarChar(sql.MAX), comment)
+      .query(`
+        UPDATE dbo.TicketComments
+        SET comment = @comment
+        OUTPUT
+          INSERTED.id,
+          INSERTED.comment AS text,
+          INSERTED.authorId,
+          INSERTED.authorName AS author,
+          INSERTED.createdAt AS date
+        WHERE id = @commentId AND ticketId = @ticketId;
+      `);
+
+    if (!result.recordset.length) {
+      return res.status(404).json({ error: 'Comentario no encontrado' });
+    }
+
+    await pool.request()
+      .input('ticketId', sql.Int, ticketId)
+      .query('UPDATE dbo.Tickets SET updatedAt = SYSDATETIME() WHERE id = @ticketId;');
+
+    res.json({ message: 'Comentario actualizado correctamente', comment: result.recordset[0] });
+  } catch (error) {
+    console.error('updateTicketComment error:', error);
+    res.status(500).json({ error: 'Error al actualizar comentario' });
+  }
+};
+
 exports.getTicketStats = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const { startDate, endDate } = req.query;
 
     let where = 'WHERE 1 = 1';
     const request = pool.request();
+    where += ` AND ${getDepartmentVisibility(request, user)}`;
 
     if (startDate) {
-      where += ' AND CAST(createdAt AS DATE) >= @startDate';
+      where += ' AND CAST(t.createdAt AS DATE) >= @startDate';
       request.input('startDate', sql.Date, startDate);
     }
 
     if (endDate) {
-      where += ' AND CAST(createdAt AS DATE) <= @endDate';
+      where += ' AND CAST(t.createdAt AS DATE) <= @endDate';
       request.input('endDate', sql.Date, endDate);
     }
 
-    const result = await pool.request().query(`
+    const result = await request.query(`
       SELECT
         COUNT(*) AS total,
-        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS [open],
-        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS inProgress,
-        SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) AS closed,
-        SUM(CASE WHEN status = 'on_hold' THEN 1 ELSE 0 END) AS onHold,
-        SUM(CASE WHEN priority = 'critical' THEN 1 ELSE 0 END) AS critical,
-        SUM(CASE WHEN priority = 'high' THEN 1 ELSE 0 END) AS high,
-        SUM(CASE WHEN priority = 'medium' THEN 1 ELSE 0 END) AS medium,
-        SUM(CASE WHEN priority = 'low' THEN 1 ELSE 0 END) AS low
-      FROM Tickets
+        SUM(CASE WHEN t.status = 'open' THEN 1 ELSE 0 END) AS [open],
+        SUM(CASE WHEN t.status = 'in_progress' THEN 1 ELSE 0 END) AS inProgress,
+        SUM(CASE WHEN t.status = 'closed' THEN 1 ELSE 0 END) AS closed,
+        SUM(CASE WHEN t.status = 'on_hold' THEN 1 ELSE 0 END) AS onHold,
+        SUM(CASE WHEN t.priority = 'critical' THEN 1 ELSE 0 END) AS critical,
+        SUM(CASE WHEN t.priority = 'high' THEN 1 ELSE 0 END) AS high,
+        SUM(CASE WHEN t.priority = 'medium' THEN 1 ELSE 0 END) AS medium,
+        SUM(CASE WHEN t.priority = 'low' THEN 1 ELSE 0 END) AS low
+      FROM dbo.Tickets t
       ${where}
     `);
 
@@ -672,19 +892,22 @@ exports.getTicketStats = async (req, res) => {
 exports.getTicketsByDay = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const { date } = req.query;
+    const request = pool.request().input('date', sql.Date, date);
+    const departmentVisibility = getDepartmentVisibility(request, user);
 
-    const result = await pool.request()
-      .input('date', sql.Date, date)
-      .query(`
+    const result = await request.query(`
         SELECT
-          CAST(createdAt AS DATE) AS date,
+          CAST(t.createdAt AS DATE) AS date,
           COUNT(*) AS total,
-          SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) AS closed,
-          SUM(CASE WHEN status <> 'closed' THEN 1 ELSE 0 END) AS pending
-        FROM Tickets
-        WHERE CAST(createdAt AS DATE) = @date
-        GROUP BY CAST(createdAt AS DATE);
+          SUM(CASE WHEN t.status = 'closed' THEN 1 ELSE 0 END) AS closed,
+          SUM(CASE WHEN t.status <> 'closed' THEN 1 ELSE 0 END) AS pending
+        FROM dbo.Tickets t
+        WHERE CAST(t.createdAt AS DATE) = @date
+          AND ${departmentVisibility}
+        GROUP BY CAST(t.createdAt AS DATE);
       `);
 
     res.json(result.recordset);
@@ -697,17 +920,20 @@ exports.getTicketsByDay = async (req, res) => {
 exports.getTicketsByHour = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const { date } = req.query;
+    const request = pool.request().input('date', sql.Date, date);
+    const departmentVisibility = getDepartmentVisibility(request, user);
 
-    const result = await pool.request()
-      .input('date', sql.Date, date)
-      .query(`
+    const result = await request.query(`
         SELECT
-          DATEPART(HOUR, createdAt) AS hour,
+          DATEPART(HOUR, t.createdAt) AS hour,
           COUNT(*) AS total
-        FROM Tickets
-        WHERE CAST(createdAt AS DATE) = @date
-        GROUP BY DATEPART(HOUR, createdAt)
+        FROM dbo.Tickets t
+        WHERE CAST(t.createdAt AS DATE) = @date
+          AND ${departmentVisibility}
+        GROUP BY DATEPART(HOUR, t.createdAt)
         ORDER BY hour;
       `);
 
@@ -721,18 +947,22 @@ exports.getTicketsByHour = async (req, res) => {
 exports.getWeekTickets = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const { startDate, endDate } = req.query;
-
-    const result = await pool.request()
+    const request = pool.request()
       .input('startDate', sql.Date, startDate)
-      .input('endDate', sql.Date, endDate)
-      .query(`
+      .input('endDate', sql.Date, endDate);
+    const departmentVisibility = getDepartmentVisibility(request, user);
+
+    const result = await request.query(`
         SELECT
-          CAST(createdAt AS DATE) AS date,
+          CAST(t.createdAt AS DATE) AS date,
           COUNT(*) AS total
-        FROM Tickets
-        WHERE CAST(createdAt AS DATE) BETWEEN @startDate AND @endDate
-        GROUP BY CAST(createdAt AS DATE)
+        FROM dbo.Tickets t
+        WHERE CAST(t.createdAt AS DATE) BETWEEN @startDate AND @endDate
+          AND ${departmentVisibility}
+        GROUP BY CAST(t.createdAt AS DATE)
         ORDER BY date;
       `);
 
@@ -746,18 +976,23 @@ exports.getWeekTickets = async (req, res) => {
 exports.getMonthTickets = async (req, res) => {
   try {
     const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
     const { year, month } = req.query;
-
-    const result = await pool.request()
+    const request = pool.request()
       .input('year', sql.Int, Number(year))
-      .input('month', sql.Int, Number(month))
-      .query(`
+      .input('month', sql.Int, Number(month));
+    const departmentVisibility = getDepartmentVisibility(request, user);
+
+    const result = await request.query(`
         SELECT
-          DAY(createdAt) AS day,
+          DAY(t.createdAt) AS day,
           COUNT(*) AS total
-        FROM Tickets
-        WHERE YEAR(createdAt) = @year AND MONTH(createdAt) = @month
-        GROUP BY DAY(createdAt)
+        FROM dbo.Tickets t
+        WHERE YEAR(t.createdAt) = @year
+          AND MONTH(t.createdAt) = @month
+          AND ${departmentVisibility}
+        GROUP BY DAY(t.createdAt)
         ORDER BY day;
       `);
 
@@ -794,13 +1029,19 @@ exports.getAreas = async (_req, res) => {
 exports.getActivities = async (req, res) => {
   try {
     const pool = await getConnection();
-    const { serviceType } = req.query;
-    if (serviceType && !VALID_SERVICE_TYPES.includes(serviceType)) {
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const { serviceType: requestedServiceType } = req.query;
+    if (requestedServiceType && !VALID_SERVICE_TYPES.includes(requestedServiceType)) {
       return res.status(400).json({ error: 'Tipo de servicio inválido' });
     }
 
     const request = pool.request();
     let where = 'WHERE active = 1';
+    const serviceType = user.isAdmin ? requestedServiceType : user.serviceType;
+    if (!user.isAdmin && !serviceType) {
+      return res.status(409).json({ error: 'Un administrador debe asignarte un tipo de servicio antes de consultar actividades' });
+    }
     if (serviceType) {
       where += ' AND serviceType = @serviceType';
       request.input('serviceType', sql.NVarChar(30), serviceType);
@@ -851,17 +1092,136 @@ exports.createActivity = async (req, res) => {
   }
 };
 
-exports.getUsers = async (_req, res) => {
+exports.getUsers = async (req, res) => {
   try {
     const pool = await getConnection();
-    const result = await pool.request().query(`
-      SELECT IdUsuario AS id, NombreUsuario AS nombre
-      FROM Cat_Usuario
-      ORDER BY NombreUsuario;
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    const request = pool.request();
+    let userFilter = '';
+    if (!user.isAdmin) {
+      request.input('departmentAreaId', sql.Int, user.departmentAreaId);
+      userFilter = 'WHERE u.id_departamento_area = @departmentAreaId';
+    }
+
+    const result = await request.query(`
+      SELECT
+        u.IdUsuario AS id,
+        LTRIM(RTRIM(CONCAT(
+          u.Nombre, N' ',
+          u.ApellidoPaterno, N' ',
+          COALESCE(u.ApellidoMaterno, N'')
+        ))) AS nombre,
+        u.NombreUsuario AS username,
+        u.IdPerfil AS profileId,
+        u.id_departamento_area AS departmentAreaId,
+        da.departamento_area AS serviceType
+      FROM dbo.Cat_Usuario u
+      LEFT JOIN dbo.Cat_DepartamentoArea da
+        ON da.id_departamento_area = u.id_departamento_area
+      ${userFilter}
+      ORDER BY u.Nombre, u.ApellidoPaterno, u.ApellidoMaterno;
     `);
     res.json(result.recordset);
   } catch (error) {
     console.error('getUsers error:', error);
     res.status(500).json({ error: 'Error al obtener usuarios' });
+  }
+};
+
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const user = await getUserContext(pool, req.user);
+    if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    res.json({
+      id: user.id,
+      idPerfil: user.idPerfil,
+      isAdmin: user.isAdmin,
+      departmentAreaId: user.departmentAreaId,
+      serviceType: user.serviceType,
+      fullName: user.fullName,
+    });
+  } catch (error) {
+    console.error('getCurrentUser error:', error);
+    res.status(500).json({ error: 'Error al obtener el usuario autenticado' });
+  }
+};
+
+exports.getDepartmentAreas = async (_req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query(`
+      SELECT
+        id_departamento_area AS id,
+        departamento_area AS serviceType
+      FROM dbo.Cat_DepartamentoArea
+      ORDER BY id_departamento_area;
+    `);
+    res.json(result.recordset);
+  } catch (error) {
+    console.error('getDepartmentAreas error:', error);
+    res.status(500).json({ error: 'Error al obtener tipos de departamento' });
+  }
+};
+
+exports.updateUserDepartmentArea = async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const currentUser = await getUserContext(pool, req.user);
+    if (!currentUser) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
+    if (!currentUser.isAdmin) return res.status(403).json({ error: 'Solo Admin puede asignar departamentos' });
+
+    const userId = Number(req.params.id);
+    const departmentAreaId = normalizeNullableNumber(req.body.departmentAreaId);
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: 'Usuario inválido' });
+    }
+    if (!Number.isSafeInteger(departmentAreaId) || departmentAreaId <= 0) {
+      return res.status(400).json({ error: 'Selecciona un tipo de departamento válido' });
+    }
+
+    const result = await pool.request()
+      .input('userId', sql.Int, userId)
+      .input('departmentAreaId', sql.Int, departmentAreaId)
+      .input('adminName', sql.VarChar(50), getUserName(req.user))
+      .query(`
+        UPDATE dbo.Cat_Usuario
+        SET id_departamento_area = @departmentAreaId,
+            FechaModificacion = SYSDATETIME(),
+            UsuarioModificacion = @adminName
+        OUTPUT
+          INSERTED.IdUsuario AS id,
+          LTRIM(RTRIM(CONCAT(
+            INSERTED.Nombre, N' ',
+            INSERTED.ApellidoPaterno, N' ',
+            COALESCE(INSERTED.ApellidoMaterno, N'')
+          ))) AS nombre,
+          INSERTED.id_departamento_area AS departmentAreaId
+        WHERE IdUsuario = @userId;
+      `);
+
+    if (!result.recordset.length) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    const departmentArea = await pool.request()
+      .input('departmentAreaId', sql.Int, departmentAreaId)
+      .query(`
+        SELECT departamento_area AS serviceType
+        FROM dbo.Cat_DepartamentoArea
+        WHERE id_departamento_area = @departmentAreaId;
+      `);
+
+    res.json({
+      message: 'Departamento asignado correctamente',
+      user: { ...result.recordset[0], serviceType: departmentArea.recordset[0]?.serviceType },
+    });
+  } catch (error) {
+    if (error.number === 547) {
+      return res.status(400).json({ error: 'Selecciona un tipo de departamento válido' });
+    }
+    console.error('updateUserDepartmentArea error:', error);
+    res.status(500).json({ error: 'Error al asignar el departamento' });
   }
 };

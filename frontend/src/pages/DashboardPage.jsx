@@ -22,13 +22,15 @@ import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ViewModuleRoundedIcon from '@mui/icons-material/ViewModuleRounded';
 import TableRowsRoundedIcon from '@mui/icons-material/TableRowsRounded';
+import ManageAccountsRoundedIcon from '@mui/icons-material/ManageAccountsRounded';
 
-import { getTickets, getTicketStats, getUsers } from '../data/API';
+import { getTickets, getTicketStats, getUsers, getCurrentUser } from '../data/API';
 import TicketCard from '../components/TicketCard';
 import DataTable from '../components/DataGrid';
 import TicketModal from '../components/TicketModal';
 import CreateTicketModal from '../components/CreateTicketModal';
 import FilterBar from '../components/FilterBar';
+import UserDepartmentDialog from '../components/UserDepartmentDialog';
 import '../styles/DashboardPage.css';
 
 const statConfig = [
@@ -61,9 +63,11 @@ const statConfig = [
 const DashboardPage = () => {
   const [tickets, setTickets] = useState([]);
   const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUserDepartmentDialog, setShowUserDepartmentDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('cards');
@@ -111,7 +115,7 @@ const DashboardPage = () => {
 
       if (filters.priority) params.priority = filters.priority;
       if (filters.status) params.status = filters.status;
-      if (filters.serviceType) params.serviceType = filters.serviceType;
+      if (filters.serviceType && currentUser?.isAdmin) params.serviceType = filters.serviceType;
       if (filters.assignedTo) params.assignedTo = filters.assignedTo;
 
       const data = await getTickets(params);
@@ -143,6 +147,7 @@ const DashboardPage = () => {
     filters.serviceType,
     filters.assignedTo,
     filters.search,
+    currentUser?.isAdmin,
   ]);
 
   useEffect(() => {
@@ -152,6 +157,19 @@ const DashboardPage = () => {
         if (active) setUsers(Array.isArray(data) ? data : data?.data || []);
       })
       .catch((err) => console.error('Error al cargar usuarios para filtrar tickets:', err));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    getCurrentUser()
+      .then((user) => {
+        if (active) setCurrentUser(user);
+      })
+      .catch((err) => console.error('Error al cargar el usuario actual:', err));
 
     return () => {
       active = false;
@@ -195,6 +213,7 @@ const DashboardPage = () => {
     },
     { field: 'subject', headerName: 'Actividad', minWidth: 350, flex: 1 },
     { field: 'attendedPerson', headerName: 'Persona atendida', minWidth: 160 },
+    { field: 'assignedToName', headerName: 'Asignado a', minWidth: 180 },
     { field: 'area', headerName: 'Área', minWidth: 350 },
     {
       field: 'status',
@@ -290,7 +309,12 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
 
-        <FilterBar filters={filters} onFilterChange={handleFilterChange} users={users} />
+        <FilterBar
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          users={users}
+          isAdmin={currentUser?.isAdmin === true}
+        />
 
         <Box component="section" className="tickets-section">
           <Stack
@@ -337,6 +361,17 @@ const DashboardPage = () => {
               >
                 Nuevo ticket
               </Button>
+
+              {currentUser?.isAdmin && (
+                <Button
+                  startIcon={<ManageAccountsRoundedIcon />}
+                  onClick={() => setShowUserDepartmentDialog(true)}
+                  variant="outlined"
+                  sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 700 }}
+                >
+                  Departamentos
+                </Button>
+              )}
 
               <Button
                 startIcon={<RefreshRoundedIcon />}
@@ -416,6 +451,11 @@ const DashboardPage = () => {
           fetchStats();
           setShowModal(false);
         }}
+      />
+
+      <UserDepartmentDialog
+        open={showUserDepartmentDialog}
+        onClose={() => setShowUserDepartmentDialog(false)}
       />
     </Box>
   );

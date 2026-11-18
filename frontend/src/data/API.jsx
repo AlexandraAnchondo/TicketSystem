@@ -102,8 +102,7 @@ export const createTicket = async (ticketData) => {
  */
 export const updateTicket = async (ticketId, ticketData) => {
     try {
-        const author = localStorage.getItem("usuario");
-        const response = await api.put(`/update-ticket/${ticketId}`, { ...ticketData, author }, { headers: getAuthHeaders() });
+        const response = await api.put(`/update-ticket/${ticketId}`, ticketData, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -127,8 +126,7 @@ export const deleteTicket = async (ticketId) => {
  */
 export const updateTicketStatus = async (ticketId, status) => {
     try {
-        const author = localStorage.getItem("usuario");
-        const response = await api.patch(`/update-ticket/${ticketId}/status`, { status, author }, { headers: getAuthHeaders() });
+        const response = await api.patch(`/update-ticket/${ticketId}/status`, { status }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -140,8 +138,7 @@ export const updateTicketStatus = async (ticketId, status) => {
  */
 export const assignTicket = async (ticketId, userId) => {
     try {
-        const author = localStorage.getItem("usuario");
-        const response = await api.patch(`/assign-ticket/${ticketId}/assign`, { userId, author }, { headers: getAuthHeaders() });
+        const response = await api.patch(`/assign-ticket/${ticketId}/assign`, { userId }, { headers: getAuthHeaders() });
         return response.data;
     } catch (error) {
         handleApiError(error);
@@ -153,9 +150,24 @@ export const assignTicket = async (ticketId, userId) => {
  */
 export const addTicketComment = async (ticketId, comment) => {
     try {
-        const author = localStorage.getItem("usuario");
-        const response = await api.post(`/add-ticket/${ticketId}/comments`, { comment, author }, { headers: getAuthHeaders() });
-        return response.data;
+        const response = await api.post(`/add-ticket/${ticketId}/comments`, { comment }, { headers: getAuthHeaders() });
+        return response.data.comment;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+/**
+ * Actualizar un comentario de un ticket
+ */
+export const updateTicketComment = async (ticketId, commentId, comment) => {
+    try {
+        const response = await api.patch(
+            `/tickets/${ticketId}/comments/${commentId}`,
+            { comment },
+            { headers: getAuthHeaders() }
+        );
+        return response.data.comment;
     } catch (error) {
         handleApiError(error);
     }
@@ -271,6 +283,37 @@ export const getUsers = async () => {
     try {
         const response = await api.get('/users', { headers: getAuthHeaders() });
         return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+export const getCurrentUser = async () => {
+    try {
+        const response = await api.get('/me', { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+export const getDepartmentAreas = async () => {
+    try {
+        const response = await api.get('/department-areas', { headers: getAuthHeaders() });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
+export const updateUserDepartmentArea = async (userId, departmentAreaId) => {
+    try {
+        const response = await api.patch(
+            `/users/${userId}/department-area`,
+            { departmentAreaId },
+            { headers: getAuthHeaders() }
+        );
+        return response.data.user;
     } catch (error) {
         handleApiError(error);
     }

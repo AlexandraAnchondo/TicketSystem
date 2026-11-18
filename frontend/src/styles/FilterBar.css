@@ -19,9 +19,13 @@
 
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(230px, 2fr) repeat(6, minmax(125px, 1fr));
+  grid-template-columns: minmax(230px, 2fr) repeat(5, minmax(125px, 1fr));
   gap: 14px;
   align-items: center;
+}
+
+.filter-grid-admin {
+  grid-template-columns: minmax(230px, 2fr) repeat(6, minmax(125px, 1fr));
 }
 
 .filter-bar .MuiOutlinedInput-root {

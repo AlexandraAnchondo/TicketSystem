@@ -17,10 +17,14 @@ router.delete('/delete-ticket/:id', verificarToken, ticketsController.deleteTick
 router.patch('/update-ticket/:id/status', verificarToken, ticketsController.updateTicketStatus);
 router.patch('/assign-ticket/:id/assign', verificarToken, ticketsController.assignTicket);
 router.post('/add-ticket/:id/comments', verificarToken, ticketsController.addTicketComment);
+router.patch('/tickets/:ticketId/comments/:commentId', verificarToken, ticketsController.updateTicketComment);
 
+router.get('/me', verificarToken, ticketsController.getCurrentUser);
 router.get('/areas', verificarToken, ticketsController.getAreas);
 router.get('/activities', verificarToken, ticketsController.getActivities);
 router.post('/activities', verificarToken, ticketsController.createActivity);
 router.get('/users', verificarToken, ticketsController.getUsers);
+router.get('/department-areas', verificarToken, ticketsController.getDepartmentAreas);
+router.patch('/users/:id/department-area', verificarToken, ticketsController.updateUserDepartmentArea);
 
 module.exports = router;

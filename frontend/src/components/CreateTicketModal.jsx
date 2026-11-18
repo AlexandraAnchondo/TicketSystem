@@ -28,7 +28,7 @@ import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded';
 import BusinessCenterRoundedIcon from '@mui/icons-material/BusinessCenterRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 
-import { createTicket, getActivities, getAreas } from '../data/API';
+import { createTicket, getActivities, getAreas, getCurrentUser } from '../data/API';
 
 const priorityOptions = [
   { value: 'low', label: 'Baja' },
@@ -78,10 +78,12 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
   const [form, setForm] = useState(initialForm);
   const [areas, setAreas] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const currentUserName = useMemo(getCurrentUserName, [open]);
+  const isAdmin = currentUser?.isAdmin === true;
 
   const availableActivities = useMemo(
     () => activities.filter((activity) => activity.serviceType === form.serviceType),
@@ -100,23 +102,37 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
     if (!open) return undefined;
 
     setForm(initialForm);
+    setCurrentUser(null);
     setError('');
 
     let active = true;
     const loadCatalogs = async () => {
       setLoadingCatalogs(true);
       try {
-        const [areasData, activitiesData] = await Promise.all([getAreas(), getActivities()]);
+        const [areasData, activitiesData, userData] = await Promise.all([
+          getAreas(),
+          getActivities(),
+          getCurrentUser(),
+        ]);
         if (active) {
           setAreas(asArray(areasData));
           setActivities(asArray(activitiesData));
+          setCurrentUser(userData);
+          setForm((prev) => ({
+            ...prev,
+            serviceType: userData.serviceType || initialForm.serviceType,
+          }));
         }
       } catch (err) {
         console.error('Error al cargar los catálogos del ticket:', err);
         if (active) {
           setAreas([]);
           setActivities([]);
-          setError('No se pudieron cargar las actividades o áreas. Cierra y vuelve a abrir el formulario.');
+          setCurrentUser(null);
+          setError(
+            err.response?.data?.error
+            || 'No se pudieron cargar las actividades o áreas. Cierra y vuelve a abrir el formulario.'
+          );
         }
       } finally {
         if (active) setLoadingCatalogs(false);
@@ -242,27 +258,37 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
             </Stack>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <FormControl
-                  fullWidth
-                  required
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      minWidth: 220,
-                    },
-                  }}
-                >
-                  <InputLabel id="ticket-service-type-label">Tipo de servicio</InputLabel>
-                  <Select
-                    labelId="ticket-service-type-label"
+                {isAdmin ? (
+                  <FormControl
+                    fullWidth
+                    required
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        minWidth: 220,
+                      },
+                    }}
+                  >
+                    <InputLabel id="ticket-service-type-label">Tipo de servicio</InputLabel>
+                    <Select
+                      labelId="ticket-service-type-label"
+                      label="Tipo de servicio"
+                      value={form.serviceType}
+                      onChange={handleChange('serviceType')}
+                    >
+                      {serviceTypeOptions.map((option) => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                ) : (
+                  <TextField
+                    fullWidth
                     label="Tipo de servicio"
                     value={form.serviceType}
-                    onChange={handleChange('serviceType')}
-                  >
-                    {serviceTypeOptions.map((option) => (
-                      <MenuItem key={option} value={option}>{option}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                    disabled
+                    helperText="Se asigna según tu departamento."
+                  />
+                )}
               </Grid>
               <Grid item xs={12} sm={6}>
                 <FormControl 

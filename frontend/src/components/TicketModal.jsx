@@ -21,7 +21,9 @@ import {
   Typography,
 } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import CommentRoundedIcon from '@mui/icons-material/CommentRounded';
+import SaveRoundedIcon from '@mui/icons-material/SaveRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
@@ -32,7 +34,12 @@ import SpeedRoundedIcon from '@mui/icons-material/SpeedRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import SupportAgentRoundedIcon from '@mui/icons-material/SupportAgentRounded';
 
-import { updateTicketStatus, addTicketComment, getTicketById } from '../data/API';
+import {
+  updateTicketStatus,
+  addTicketComment,
+  getTicketById,
+  updateTicketComment,
+} from '../data/API';
 import '../styles/TicketModal.css';
 
 const priorityMeta = {
@@ -93,25 +100,40 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editedComment, setEditedComment] = useState('');
+  const [isUpdatingComment, setIsUpdatingComment] = useState(false);
+  const [commentError, setCommentError] = useState('');
   const [comments, setComments] = useState([]);
   const [ticket, setTicket] = useState(null);
 
   useEffect(() => {
+    if (!open || !ticket_id) {
+      setTicket(null);
+      setComments([]);
+      return undefined;
+    }
+
+    let active = true;
+    setTicket(null);
     const fetchTicket = async () => {
-      if (ticket_id) {
-        try {
-          const ticketData = await getTicketById(ticket_id);
+      try {
+        const ticketData = await getTicketById(ticket_id);
+        if (active) {
           setTicket(ticketData);
           setComments(ticketData.comments || []);
           setNewComment('');
-        } catch (error) {
-          console.error('Error fetching ticket:', error);
         }
+      } catch (error) {
+        console.error('Error fetching ticket:', error);
       }
     };
 
     fetchTicket();
-  }, [ticket_id]);
+    return () => {
+      active = false;
+    };
+  }, [ticket_id, open]);
 
   if (!ticket) return null;
 
@@ -144,17 +166,36 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
     if (!newComment.trim()) return;
 
     setIsAddingComment(true);
+    setCommentError('');
     try {
-      await addTicketComment(ticket.id, newComment);
-      setComments((prev) => [
-        ...prev,
-        { text: newComment.trim(), author: 'Me', date: new Date() },
-      ]);
+      const addedComment = await addTicketComment(ticket.id, newComment);
+      setComments((prev) => [...prev, addedComment]);
       setNewComment('');
     } catch (error) {
       console.error('Error adding comment:', error);
+      setCommentError('No se pudo agregar el comentario.');
     } finally {
       setIsAddingComment(false);
+    }
+  };
+
+  const handleSaveComment = async () => {
+    if (!editedComment.trim() || !editingCommentId) return;
+
+    setIsUpdatingComment(true);
+    setCommentError('');
+    try {
+      const updatedComment = await updateTicketComment(ticket.id, editingCommentId, editedComment);
+      setComments((previousComments) => previousComments.map((comment) => (
+        comment.id === updatedComment.id ? updatedComment : comment
+      )));
+      setEditingCommentId(null);
+      setEditedComment('');
+    } catch (error) {
+      console.error('Error updating comment:', error);
+      setCommentError('No se pudo actualizar el comentario.');
+    } finally {
+      setIsUpdatingComment(false);
     }
   };
 
@@ -162,6 +203,9 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
     setTicket(null);
     setComments([]);
     setNewComment('');
+    setEditingCommentId(null);
+    setEditedComment('');
+    setCommentError('');
     onClose();
   };
 
@@ -201,7 +245,7 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
             </Typography>
           </Box>
 
-          <IconButton onClick={onClose} className="modal-close-button">
+          <IconButton onClick={handleClose} className="modal-close-button">
             <CloseRoundedIcon />
           </IconButton>
         </Stack>
@@ -217,7 +261,9 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
               </Typography>
             </Stack>
             <Typography variant="body2" color="text.secondary" className="description-text">
-              {ticket.description || 'Sin descripción capturada.'}
+              {ticket.canViewDescription === false
+                ? 'Descripción restringida para este ticket.'
+                : ticket.description || 'Sin descripción capturada.'}
             </Typography>
           </Paper>
 
@@ -232,6 +278,13 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
                   icon={<PersonRoundedIcon />}
                   label="Persona atendida"
                   value={ticket.attendedPerson || 'N/A'}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <DetailItem
+                  icon={<SupportAgentRoundedIcon />}
+                  label="Asignado a"
+                  value={ticket.assignedToName || 'Sin asignar'}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -325,24 +378,75 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
             </Stack>
 
             <Stack spacing={1.5} className="comments-list">
+              {commentError && <Alert severity="error" sx={{ borderRadius: 3 }}>{commentError}</Alert>}
               {comments.length === 0 ? (
                 <Alert severity="info" sx={{ borderRadius: 3 }}>
                   Sin comentarios aún.
                 </Alert>
               ) : (
-                comments.map((comment, index) => (
-                  <Paper key={`${comment.date}-${index}`} className="comment-item" elevation={0}>
+                comments.map((comment) => (
+                  <Paper key={comment.id} className="comment-item" elevation={0}>
                     <Stack direction="row" justifyContent="space-between" spacing={1}>
-                      <Typography variant="body2" fontWeight={900}>
-                        {comment.author || 'Usuario'}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(comment.date)}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="body2" fontWeight={900}>
+                          {comment.author || 'Usuario'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatDate(comment.date)}
+                        </Typography>
+                      </Stack>
+                      {editingCommentId !== comment.id && (
+                        <Button
+                          size="small"
+                          startIcon={<EditRoundedIcon />}
+                          onClick={() => {
+                            setEditingCommentId(comment.id);
+                            setEditedComment(comment.text);
+                            setCommentError('');
+                          }}
+                        >
+                          Editar
+                        </Button>
+                      )}
                     </Stack>
-                    <Typography variant="body2" color="text.secondary" mt={0.8}>
-                      {comment.text}
-                    </Typography>
+                    {editingCommentId === comment.id ? (
+                      <Stack spacing={1} mt={1}>
+                        <TextField
+                          fullWidth
+                          multiline
+                          minRows={2}
+                          value={editedComment}
+                          onChange={(event) => setEditedComment(event.target.value)}
+                        />
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              setEditingCommentId(null);
+                              setEditedComment('');
+                            }}
+                            disabled={isUpdatingComment}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={isUpdatingComment
+                              ? <CircularProgress color="inherit" size={14} />
+                              : <SaveRoundedIcon />}
+                            onClick={handleSaveComment}
+                            disabled={!editedComment.trim() || isUpdatingComment}
+                          >
+                            Guardar
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" mt={0.8}>
+                        {comment.text}
+                      </Typography>
+                    )}
                   </Paper>
                 ))
               )}
@@ -377,7 +481,7 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
       </DialogContent>
 
       <DialogActions className="ticket-modal-actions">
-        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 800 }}>
+        <Button onClick={handleClose} variant="outlined" sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 800 }}>
           Cerrar
         </Button>
       </DialogActions>
