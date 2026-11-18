@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -241,6 +242,29 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
             </Stack>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
+                <FormControl
+                  fullWidth
+                  required
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      minWidth: 220,
+                    },
+                  }}
+                >
+                  <InputLabel id="ticket-service-type-label">Tipo de servicio</InputLabel>
+                  <Select
+                    labelId="ticket-service-type-label"
+                    label="Tipo de servicio"
+                    value={form.serviceType}
+                    onChange={handleChange('serviceType')}
+                  >
+                    {serviceTypeOptions.map((option) => (
+                      <MenuItem key={option} value={option}>{option}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
                 <FormControl 
                   fullWidth 
                   required 
@@ -267,29 +291,6 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
                   {!loadingCatalogs && availableActivities.length === 0 && (
                     <FormHelperText>No hay actividades activas para este tipo de servicio.</FormHelperText>
                   )}
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl 
-                  fullWidth 
-                  required
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      minWidth: 220,
-                    },
-                  }}
-                  >
-                  <InputLabel id="ticket-service-type-label">Tipo de servicio</InputLabel>
-                  <Select
-                    labelId="ticket-service-type-label"
-                    label="Tipo de servicio"
-                    value={form.serviceType}
-                    onChange={handleChange('serviceType')}
-                  >
-                    {serviceTypeOptions.map((option) => (
-                      <MenuItem key={option} value={option}>{option}</MenuItem>
-                    ))}
-                  </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
@@ -337,29 +338,26 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <FormControl 
-                  fullWidth 
-                  required 
-                  disabled={loadingCatalogs || areas.length === 0}
+                <FormControl
+                  fullWidth
+                  required
                   sx={{
                     '& .MuiInputBase-root': {
-                      minWidth: 220,
+                      minWidth: 250,
                     },
                   }}
                 >
-                  <InputLabel id="ticket-department-label">Área</InputLabel>
-                  <Select
-                    labelId="ticket-department-label"
-                    label="Área"
-                    value={form.departmentId}
-                    onChange={handleChange('departmentId')}
-                  >
-                    {areas.map((area) => (
-                      <MenuItem key={getOptionId(area)} value={getOptionId(area)}>
-                        {getAreaName(area)}
-                      </MenuItem>
-                    ))}
-                  </Select>
+                  <Autocomplete
+                    options={areas}
+                    value={areas.find((area) => String(getOptionId(area)) === String(form.departmentId)) || null}
+                    getOptionLabel={(area) => String(getAreaName(area) || '')}
+                    isOptionEqualToValue={(option, value) => getOptionId(option) === getOptionId(value)}
+                    onChange={(_, area) => {
+                      setForm((prev) => ({ ...prev, departmentId: area ? getOptionId(area) : '' }));
+                    }}
+                    disabled={loadingCatalogs || areas.length === 0}
+                    renderInput={(params) => <TextField {...params} label="Área" required />}
+                  />
                   {!loadingCatalogs && areas.length === 0 && (
                     <FormHelperText>No hay áreas activas disponibles.</FormHelperText>
                   )}

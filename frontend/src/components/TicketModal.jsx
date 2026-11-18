@@ -132,6 +132,7 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
     try {
       await updateTicketStatus(ticket.id, newStatus);
       onUpdate();
+      setTicket((prev) => ({ ...prev, status: newStatus }));
     } catch (error) {
       console.error('Error updating status:', error);
     } finally {
