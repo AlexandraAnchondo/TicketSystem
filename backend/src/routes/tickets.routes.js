@@ -21,6 +21,7 @@ router.patch('/tickets/:ticketId/comments/:commentId', verificarToken, ticketsCo
 
 router.get('/me', verificarToken, ticketsController.getCurrentUser);
 router.get('/areas', verificarToken, ticketsController.getAreas);
+router.get('/employees', verificarToken, ticketsController.getEmployees);
 router.get('/activities', verificarToken, ticketsController.getActivities);
 router.post('/activities', verificarToken, ticketsController.createActivity);
 router.get('/users', verificarToken, ticketsController.getUsers);

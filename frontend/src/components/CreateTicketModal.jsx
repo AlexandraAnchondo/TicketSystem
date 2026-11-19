@@ -28,7 +28,13 @@ import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded';
 import BusinessCenterRoundedIcon from '@mui/icons-material/BusinessCenterRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 
-import { createTicket, getActivities, getAreas, getCurrentUser } from '../data/API';
+import {
+  createTicket,
+  getActivities,
+  getAreas,
+  getCurrentUser,
+  getEmployees,
+} from '../data/API';
 
 const priorityOptions = [
   { value: 'low', label: 'Baja' },
@@ -78,6 +84,9 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
   const [form, setForm] = useState(initialForm);
   const [areas, setAreas] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [employeeSearchError, setEmployeeSearchError] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -89,6 +98,33 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
     () => activities.filter((activity) => activity.serviceType === form.serviceType),
     [activities, form.serviceType]
   );
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    let active = true;
+    const timeoutId = setTimeout(async () => {
+      setLoadingEmployees(true);
+      setEmployeeSearchError('');
+      try {
+        const employeeNames = await getEmployees(form.attendedPerson);
+        if (active) setEmployees(Array.isArray(employeeNames) ? employeeNames : []);
+      } catch (requestError) {
+        console.error('Error al buscar empleados:', requestError);
+        if (active) {
+          setEmployees([]);
+          setEmployeeSearchError('No se pudo cargar el directorio; puedes escribir el nombre manualmente.');
+        }
+      } finally {
+        if (active) setLoadingEmployees(false);
+      }
+    }, 250);
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [form.attendedPerson, open]);
 
   const isValid = Boolean(
     form.activityId
@@ -353,14 +389,37 @@ const CreateTicketModal = ({ open, onClose, onCreated }) => {
               <Typography variant="subtitle1" fontWeight={850}>Personas y área</Typography>
             </Stack>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  required
-                  label="Persona atendida"
-                  placeholder="Nombre de la persona solicitante"
+              <Grid item xs={12} sm={6} minWidth={250}>
+                <Autocomplete
+                  freeSolo
+                  options={employees}
                   value={form.attendedPerson}
-                  onChange={handleChange('attendedPerson')}
+                  inputValue={form.attendedPerson}
+                  loading={loadingEmployees}
+                  onChange={(_, value) => {
+                    setForm((prev) => ({ ...prev, attendedPerson: value || '' }));
+                  }}
+                  onInputChange={(_, value) => {
+                    setForm((prev) => ({ ...prev, attendedPerson: value }));
+                  }}
+                  noOptionsText="Sin coincidencias; puedes escribir el nombre"
+                  loadingText="Buscando empleados..."
+                  renderInput={(params) => (
+                    <TextField
+                      value={params.inputProps.value?.toUpperCase() || ''}
+                      onChange={(e) => {
+                        const upperValue = e.target.value.toUpperCase();
+                        setForm((prev) => ({ ...prev, attendedPerson: upperValue }));
+                      }}
+                      {...params}
+                      fullWidth
+                      required
+                      label="Persona atendida"
+                      placeholder="Busca un empleado o escribe un nombre"
+                      helperText={employeeSearchError}
+                      error={Boolean(employeeSearchError)}
+                    />
+                  )}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

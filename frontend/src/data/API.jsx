@@ -250,6 +250,18 @@ export const getAreas = async () => {
     }
 };
 
+export const getEmployees = async (search = '') => {
+    try {
+        const response = await api.get('/employees', {
+            params: { search },
+            headers: getAuthHeaders(),
+        });
+        return response.data;
+    } catch (error) {
+        handleApiError(error);
+    }
+};
+
 /**
  * Obtener actividades activas para crear tickets
  */

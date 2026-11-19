@@ -1035,6 +1035,28 @@ exports.getAreas = async (_req, res) => {
   }
 };
 
+exports.getEmployees = async (req, res) => {
+  try {
+    const search = typeof req.query.search === 'string' ? req.query.search.trim().slice(0, 150) : '';
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('search', sql.NVarChar(150), `%${search}%`)
+      .query(`
+        SELECT DISTINCT TOP (50)
+          LTRIM(RTRIM(NombreCompleto)) AS nombre
+        FROM [SIC_2026].[dbo].[View_GESTA_Empleado]
+        WHERE NULLIF(LTRIM(RTRIM(NombreCompleto)), N'') IS NOT NULL
+          AND LTRIM(RTRIM(NombreCompleto)) LIKE @search
+        ORDER BY nombre;
+      `);
+
+    res.json(result.recordset.map((employee) => employee.nombre));
+  } catch (error) {
+    console.error('getEmployees error:', error);
+    res.status(500).json({ error: 'Error al obtener empleados' });
+  }
+};
+
 exports.getActivities = async (req, res) => {
   try {
     const pool = await getConnection();
