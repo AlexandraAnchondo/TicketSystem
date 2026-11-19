@@ -846,11 +846,20 @@ exports.getTicketStats = async (req, res) => {
     const pool = await getConnection();
     const user = await getUserContext(pool, req.user);
     if (!user) return res.status(401).json({ error: 'Usuario autenticado no encontrado' });
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, assignedTo } = req.query;
 
     let where = 'WHERE 1 = 1';
     const request = pool.request();
     where += ` AND ${getDepartmentVisibility(request, user)}`;
+
+    const assignedToNumber = normalizeNullableNumber(assignedTo);
+    if (assignedToNumber !== null) {
+      if (!Number.isSafeInteger(assignedToNumber) || assignedToNumber <= 0) {
+        return res.status(400).json({ error: 'Usuario asignado inválido' });
+      }
+      where += ' AND t.assignedTo = @assignedTo';
+      request.input('assignedTo', sql.Int, assignedToNumber);
+    }
 
     if (startDate) {
       where += ' AND CAST(t.createdAt AS DATE) >= @startDate';

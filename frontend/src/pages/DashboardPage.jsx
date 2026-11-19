@@ -58,7 +58,42 @@ const statConfig = [
     icon: CheckCircleRoundedIcon,
     gradient: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
   },
+  {
+    key: 'onHold',
+    label: 'En espera',
+    icon: CheckCircleRoundedIcon,
+    gradient: 'linear-gradient(135deg, #b1920b 0%, #d8b411 100%)',
+  },
 ];
+
+const getPeriodParams = (timeRange) => {
+  const today = new Date();
+  const endDate = today.toISOString().split('T')[0];
+
+  if (timeRange === 'today') {
+    return { startDate: endDate, endDate };
+  }
+
+  if (timeRange === 'week') {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    return { startDate: weekStart.toISOString().split('T')[0], endDate };
+  }
+
+  if (timeRange === 'month') {
+    return {
+      startDate: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`,
+      endDate,
+    };
+  }
+
+  return {};
+};
+
+const getInitialAssignedTo = () => {
+  const userId = Number(localStorage.getItem('id_usuario'));
+  return Number.isSafeInteger(userId) && userId > 0 ? userId : null;
+};
 
 const DashboardPage = () => {
   const [tickets, setTickets] = useState([]);
@@ -73,11 +108,11 @@ const DashboardPage = () => {
   const [viewMode, setViewMode] = useState('cards');
 
   const [filters, setFilters] = useState({
-    timeRange: 'today',
+    timeRange: 'week',
     priority: null,
-    status: null,
+    status: 'in_progress',
     serviceType: null,
-    assignedTo: null,
+    assignedTo: getInitialAssignedTo(),
     search: '',
     sortBy: 'date',
   });
@@ -89,29 +124,12 @@ const DashboardPage = () => {
     setError(null);
 
     try {
-      const today = new Date();
       const params = {
         search: filters.search,
         page: 1,
         limit: 100,
+        ...getPeriodParams(filters.timeRange),
       };
-
-      if (filters.timeRange === 'today') {
-        params.startDate = today.toISOString().split('T')[0];
-        params.endDate = today.toISOString().split('T')[0];
-      }
-
-      if (filters.timeRange === 'week') {
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - today.getDay());
-        params.startDate = weekStart.toISOString().split('T')[0];
-        params.endDate = today.toISOString().split('T')[0];
-      }
-
-      if (filters.timeRange === 'month') {
-        params.startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-        params.endDate = today.toISOString().split('T')[0];
-      }
 
       if (filters.priority) params.priority = filters.priority;
       if (filters.status) params.status = filters.status;
@@ -130,7 +148,12 @@ const DashboardPage = () => {
 
   const fetchStats = async () => {
     try {
-      const statsData = await getTicketStats();
+      const params = {
+        ...getPeriodParams(filters.timeRange),
+      };
+      if (filters.assignedTo) params.assignedTo = filters.assignedTo;
+
+      const statsData = await getTicketStats(params);
       setStats(statsData);
     } catch (err) {
       console.error('Error fetching stats:', err);
