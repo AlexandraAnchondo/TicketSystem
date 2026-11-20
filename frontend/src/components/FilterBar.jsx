@@ -23,7 +23,7 @@ const timeRangeOptions = [
 ];
 
 const priorityOptions = [
-  { value: '', label: 'Todas' },
+  { value: 'all-priority', label: 'Todas' },
   { value: 'critical', label: 'Crítica' },
   { value: 'high', label: 'Alta' },
   { value: 'medium', label: 'Media' },
@@ -31,7 +31,7 @@ const priorityOptions = [
 ];
 
 const statusOptions = [
-  { value: '', label: 'Todos' },
+  { value: 'all-status', label: 'Todos' },
   { value: 'open', label: 'Abiertos' },
   { value: 'in_progress', label: 'En progreso' },
   { value: 'closed', label: 'Cerrados' },

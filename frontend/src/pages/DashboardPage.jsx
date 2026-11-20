@@ -108,10 +108,10 @@ const DashboardPage = () => {
   const [viewMode, setViewMode] = useState('cards');
 
   const [filters, setFilters] = useState({
-    timeRange: 'week',
-    priority: null,
-    status: 'in_progress',
-    serviceType: null,
+    timeRange: 'today',
+    priority: 'all-priority',
+    status: 'all-status',
+    serviceType: '',
     assignedTo: getInitialAssignedTo(),
     search: '',
     sortBy: 'date',
