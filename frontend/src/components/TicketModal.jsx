@@ -339,41 +339,6 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
           </Paper>
 
           <Paper className="modal-section" elevation={0}>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              justifyContent="space-between"
-              alignItems={{ xs: 'stretch', sm: 'center' }}
-              spacing={1.5}
-            >
-              <Box>
-                <Typography variant="subtitle1" fontWeight={900}>
-                  Cambiar estado
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Actualiza el avance del ticket.
-                </Typography>
-              </Box>
-
-              {isUpdatingStatus && <CircularProgress size={24} />}
-            </Stack>
-
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              value={ticket.status}
-              onChange={handleStatusChange}
-              disabled={isUpdatingStatus}
-              className="status-toggle-group"
-            >
-              {statusOptions.map((status) => (
-                <ToggleButton key={status.value} value={status.value}>
-                  {status.label}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Paper>
-
-          <Paper className="modal-section" elevation={0}>
             <Stack direction="row" spacing={1} alignItems="center" mb={2}>
               <CommentRoundedIcon color="primary" />
               <Typography variant="subtitle1" fontWeight={900}>
@@ -480,6 +445,41 @@ const TicketModal = ({ open, ticket_id, onClose, onUpdate }) => {
                 Comentar
               </Button>
             </Stack>
+          </Paper>
+
+          <Paper className="modal-section" elevation={0}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'stretch', sm: 'center' }}
+              spacing={1.5}
+            >
+              <Box>
+                <Typography variant="subtitle1" fontWeight={900}>
+                  Cambiar estado
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Actualiza el avance del ticket.
+                </Typography>
+              </Box>
+
+              {isUpdatingStatus && <CircularProgress size={24} />}
+            </Stack>
+
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              value={ticket.status}
+              onChange={handleStatusChange}
+              disabled={isUpdatingStatus}
+              className="status-toggle-group"
+            >
+              {statusOptions.map((status) => (
+                <ToggleButton key={status.value} value={status.value}>
+                  {status.label}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
           </Paper>
         </Stack>
       </DialogContent>
